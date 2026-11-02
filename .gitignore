@@ -1,0 +1,9 @@
+node_modules/
+dist/
+cdk.out/
+.env
+playwright-report/
+test-results/
+work/
+*.log
+dynamodb-local-metadata.json
