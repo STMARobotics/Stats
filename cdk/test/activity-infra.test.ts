@@ -2,7 +2,7 @@ import { App } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { expect, it } from 'vitest';
 import { resolve } from 'node:path';
-import { ActivityStack } from '../infra/activity-stack';
+import { ActivityStack } from '../lib/activity-stack';
 it('isolates shadow data permissions, filters tenants, and disables capture by default', () => {
   const app = new App({ outdir: resolve('work/activity-cdk') });
   const stack = new ActivityStack(app, 'stats-activity', {

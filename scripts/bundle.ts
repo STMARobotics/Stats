@@ -1,7 +1,14 @@
 import { build } from "esbuild";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 await build({
-  entryPoints: ["service/handler.ts", "service/authorizer.ts", "service/activity-projection.ts"],
-  outdir: "dist/service",
+  entryPoints: [
+    resolve(projectRoot, "service/handler.ts"),
+    resolve(projectRoot, "service/authorizer.ts"),
+    resolve(projectRoot, "service/activity-projection.ts"),
+  ],
+  outdir: resolve(projectRoot, "dist/service"),
   bundle: true,
   platform: "node",
   target: "node24",

@@ -22,13 +22,13 @@ No Scan, PutItem, UpdateItem, DeleteItem, BatchWriteItem or TransactWriteItems. 
 
 Stats queries only canonical member activity prefixes and never event counters, barcode/uniqueness/current claims, source documents, rollups, audits or notification state. Award snapshots determine credit; editing event metadata does not change historical award duration. Stats makes no approval, deduplication, identity-mapping or migration decisions.
 
-## DEVELOPMENT-TABLE ACCEPTANCE
+## READ-ONLY ACCEPTANCE
 
 1. Recompare Puncher's current published schema/fixture to these snapshots. Run `npm run check` and `npm run test:db` against a disposable local database.
-2. Use an explicitly selected Puncher development table with read-only AWS credentials, `DATA_MODE=cloud`, `CLOUD_DEV_CONFIRMED=true`, `STATS_ENV=development`, TABLE_NAME, SOURCE_REGION and the Stats GOOGLE_CLIENT_ID. Omit DYNAMODB_ENDPOINT. Do not seed it from Stats.
-3. Ask Puncher's approved setup to associate real development Google subjects and exact Stats permissions. Verify enabled/disabled/unlinked/student/staff access using Stats' own Google client.
-4. Compare known member/year totals, exact tie ranks and staff CSVs to underlying approved records. Confirm overdue active visits earn zero before writer cleanup, warnings remain unchanged and no calls write to the table.
+2. Before deploying, verify the production `TABLE_NAME`, `PUNCHER_TABLE_ARN` and `SOURCE_REGION` in `cdk/lib/config.ts` match the Puncher stack output and the source schema.
+3. After deployment, have Puncher provision approved Workspace identities with exact Stats permissions. Verify enabled/disabled/unlinked/student/staff access using the shared Google client.
+4. Compare known member/year totals, exact tie ranks and staff CSVs to approved records. Confirm overdue active visits earn zero before writer cleanup, warnings remain unchanged, and Stats makes no writes.
 5. Test direct API Gateway URLs as well as CloudFront, revoke an identity during a session, and verify immediately denied subsequent requests. Verify errors and missing metadata do not show zero-hour cards.
-6. Record the tested Puncher revision, table ARN, environment and accepted results before production rollout. No live acceptance has been claimed by this delivery.
+6. Record the tested Puncher revision, table ARN, deployed environment and accepted results. No live acceptance has been claimed by this delivery.
 
 The shared table's DynamoDB charges remain assigned to Puncher. Stats tags identify its compute/CDN/API resources; they cannot split table charges by calling application.

@@ -1,6 +1,6 @@
 // Separate opt-in entry point. The existing Stats reader/deployment is unchanged.
-import { App, Tags, DefaultStackSynthesizer } from 'aws-cdk-lib';
-import { ActivityStack } from './activity-stack';
+import { App, Tags } from 'aws-cdk-lib';
+import { ActivityStack } from '../lib/activity-stack';
 const app = new App();
 const validation = ['true', true].includes(app.node.tryGetContext('validation'));
 const account = validation ? '111111111111' : process.env.INTEGRATION_ACCOUNT;
@@ -28,5 +28,4 @@ new ActivityStack(app, 'stats-' + environment + '-activity', {
     app.node.tryGetContext('activityConsumerEnabled') === true ||
     app.node.tryGetContext('activityConsumerEnabled') === 'true',
   env: { account, region: 'us-east-2' },
-  synthesizer: new DefaultStackSynthesizer({ qualifier: 'stats7028' }),
 });

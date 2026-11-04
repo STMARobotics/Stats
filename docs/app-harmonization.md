@@ -1,6 +1,6 @@
 # App harmonization: local foundation
 
-Status: first implementation milestone, local branch codex/app-harmonization in all four repositories. No push, deployment, historical import, account merge, dashboard cutover or integration reward issuance has been performed.
+Status: first integration foundation, reconciled with the updated npm workspaces and CDK layout on main. Capture and consumption remain opt-in and disabled by default. Identity merging, historical import, dashboard cutover and integration reward issuance are later milestones.
 
 ## Ownership and contracts
 
@@ -42,8 +42,12 @@ The separately deployable shadow consumer owns its own retained DynamoDB table, 
 
 Native subjects remain separate: these are shadow totals, not verified cross-app people. No names, emails or inferred identity joins are used. The current authorized dashboard/reader is unchanged. Projection generations isolate rebuilds.
 
-Synthesize with npx cdk synth --app "node --import tsx infra/activity-app.ts" -c validation=true --output work/activity-synth. Real synthesis requires INTEGRATION_ACCOUNT, INTEGRATION_ENV, INTEGRATION_ORG_ID and INTEGRATION_BUS_ARN. ACTIVITY_PROJECTION_GENERATION defaults to shadow-v1. The subscription/worker remain disabled unless -c activityConsumerEnabled=true is explicitly supplied.
+Synthesize the separate consumer with npm run cdk:synth:activity (synthetic validation configuration). Its entrypoint is cdk/bin/activity.ts and implementation is cdk/lib/activity-stack.ts. Real synthesis requires INTEGRATION_ACCOUNT, INTEGRATION_ENV, INTEGRATION_ORG_ID and INTEGRATION_BUS_ARN. ACTIVITY_PROJECTION_GENERATION defaults to shadow-v1. The subscription/worker remain disabled unless -c activityConsumerEnabled=true is explicitly supplied.
 
 Checks: npm run check; npm run test:db against a disposable local DynamoDB endpoint. The latter now includes real transactional projection concurrency/reversal tests.
 
 Local validation and environment limitations: [harmonization-verification.md](harmonization-verification.md).
+
+The standalone stack now uses the same default CDK bootstrap qualifier as the updated main app. Existing production stack names, record-table identity, authorization and deployment roles are preserved. The organization bus and shadow consumer stay outside the normal app deployment entrypoints.
+
+Workspace reconciliation details: [harmonization-compatibility.md](harmonization-compatibility.md).

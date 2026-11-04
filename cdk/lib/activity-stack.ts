@@ -17,6 +17,8 @@ import {
 import type { StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const projectRoot = fileURLToPath(new URL('../..', import.meta.url));
 export class ActivityStack extends Stack {
   constructor(
     scope: Construct,
@@ -62,7 +64,7 @@ export class ActivityStack extends Stack {
       deadLetterQueue: { queue: processingDead, maxReceiveCount: 5 },
     });
     const worker = new nodejs.NodejsFunction(this, 'Projector', {
-      entry: resolve('service/activity-projection.ts'),
+      entry: resolve(projectRoot, 'service/activity-projection.ts'),
       handler: 'handler',
       runtime: lambda.Runtime.NODEJS_24_X,
       architecture: lambda.Architecture.ARM_64,

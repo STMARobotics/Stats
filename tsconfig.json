@@ -12,5 +12,6 @@
     "noEmit": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["service", "ui", "infra", "scripts", "tests", "*.ts"]
+  "include": ["service", "ui", "scripts", "tests", "*.ts"],
+  "exclude": ["cdk"]
 }
