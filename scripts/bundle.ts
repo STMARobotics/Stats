@@ -1,6 +1,6 @@
 import { build } from "esbuild";
 await build({
-  entryPoints: ["service/handler.ts", "service/authorizer.ts"],
+  entryPoints: ["service/handler.ts", "service/authorizer.ts", "service/activity-projection.ts"],
   outdir: "dist/service",
   bundle: true,
   platform: "node",
