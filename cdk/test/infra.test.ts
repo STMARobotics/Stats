@@ -1,38 +1,41 @@
-import { App, Tags } from "aws-cdk-lib";
-import { Template, Match } from "aws-cdk-lib/assertions";
+import { App } from "aws-cdk-lib";
+import { Template } from "aws-cdk-lib/assertions";
 import { expect, it } from "vitest";
 import { resolve } from "node:path";
-import { applyStatsTags } from "../infra/tags";
-import { configuration } from "../infra/config";
-import {
-  BackendStack,
-  CertificateStack,
-  FrontendStack,
-  DeploymentRoleStack,
-  spaCode,
-} from "../infra/stacks";
+import { fileURLToPath } from "node:url";
+import { applyStatsTags } from "../lib/tags";
+import { config as deploymentConfig } from "../lib/config";
+import { BackendStack } from "../lib/backend-stack";
+import { CertificateStack } from "../lib/certificate-stack";
+import { DeploymentRoleStack } from "../lib/deployment-role-stack";
+import { FrontendStack } from "../lib/frontend-stack";
+import { spaCode } from "../lib/stack-common";
+const projectRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
+
 it("synthesizes isolated tagged infrastructure and read-only exact source IAM", () => {
-  const app = new App({ outdir: resolve("work/test-cdk") }),
-    config = configuration(true);
-  applyStatsTags(app, "validation");
-  const cert = new CertificateStack(app, "stats-validation-certificate", {
+  const app = new App({ outdir: resolve(projectRoot, "work/test-cdk") }),
+    config = deploymentConfig;
+  applyStatsTags(app);
+  const cert = new CertificateStack(app, "stats-certificate", {
     config,
     env: { account: config.account, region: "us-east-1" },
+    crossRegionReferences: true,
   });
-  const backend = new BackendStack(app, "stats-validation-backend", {
+  const backend = new BackendStack(app, "stats-backend", {
     config,
     env: { account: config.account, region: "us-east-2" },
+    crossRegionReferences: true,
   });
-  const front = new FrontendStack(app, "stats-validation-frontend", {
+  const front = new FrontendStack(app, "stats-frontend", {
     config,
     api: backend.api,
+    certificate: cert.certificate,
     env: { account: config.account, region: "us-east-2" },
+    crossRegionReferences: true,
   });
-  const role = new DeploymentRoleStack(app, "stats-validation-deployment", {
-    environment: "validation",
-    repository: "STMARobotics/Stats",
-    providerArn:
-      "arn:aws:iam::111111111111:oidc-provider/token.actions.githubusercontent.com",
+  const role = new DeploymentRoleStack(app, "stats-deployment", {
+    repository: config.repository,
+    providerArn: config.providerArn,
     env: { account: config.account, region: "us-east-2" },
   });
   const b = Template.fromStack(backend),
@@ -98,10 +101,13 @@ it("synthesizes isolated tagged infrastructure and read-only exact source IAM", 
     "AWS::CertificateManager::Certificate",
   ];
   for (const stack of [cert, backend, front, role])
-    for (const resource of Object.values(
+    for (const [logicalId, resource] of Object.entries(
       Template.fromStack(stack).toJSON().Resources,
-    ) as any[])
-      if (taggable.includes(resource.Type)) {
+    ) as [string, any][])
+      if (
+        taggable.includes(resource.Type) &&
+        !logicalId.includes("CustomCrossRegionExport")
+      ) {
         const tags = resource.Properties.Tags;
         expect(
           Array.isArray(tags)
@@ -112,7 +118,21 @@ it("synthesizes isolated tagged infrastructure and read-only exact source IAM", 
       }
   const roleDoc = JSON.stringify(Template.fromStack(role).toJSON());
   expect(roleDoc).toContain(
-    "repo:STMARobotics/Stats:environment:stats-validation",
+    "repo:STMARobotics/Stats:ref:refs/heads/main",
   );
-  expect(roleDoc).not.toContain("738044534240");
+  expect(roleDoc).not.toContain(":environment:");
+  expect(roleDoc).not.toContain("stats-production");
+  expect(roleDoc).toContain(
+    `cdk-hnb659fds-deploy-role-${config.account}-us-east-1`,
+  );
+  expect(roleDoc).toContain("cdk-bootstrap/hnb659fds/version");
+  expect(roleDoc).not.toContain("stats7028");
+  for (const stackName of [
+    "stats-certificate",
+    "stats-backend",
+    "stats-frontend",
+  ])
+    expect(roleDoc).toContain(`${stackName}/*`);
+  expect(roleDoc).not.toContain("stats-*/*");
+  expect(roleDoc).toContain(config.account);
 });

@@ -25,7 +25,7 @@ npm run test:browser
 npm run test:db
 ```
 
-`check` builds the browser and Lambda packages, runs domain/auth/API/CDK assertions, and synthesizes all three AWS stacks using clearly synthetic validation settings. These settings never establish a production integration. Browser tests use Playwright Chromium (`npx playwright install chromium`). CI also runs the DynamoDB Local and desktop/mobile accessibility checks.
+`check` builds the browser, Lambda packages, and CDK project; runs the application and CDK assertions; and synthesizes all three configured stacks without AWS credentials. CI also runs DynamoDB Local and Playwright Chromium checks.
 
 ## PROJECT MAP
 
@@ -38,9 +38,9 @@ npm run test:db
 | `service/api.ts` | Authorized read routes and explicit response DTOs |
 | `service/local.ts`, `service/fixtures.ts` | Loopback development adapter and isolated demo |
 | `contracts` | Snapshot of Puncher's published v1 JSON Schema and language-neutral fixture |
-| `infra` | Separate certificate, backend, frontend stacks and GitHub deployment trust |
+| `cdk` | Typed single-deployment configuration, separate certificate/backend/frontend stacks, and GitHub deployment trust |
 | `tests` | Rules, security, contract, infrastructure, database and browser checks |
 
 See [architecture](docs/architecture.md), [Puncher integration](docs/stats-integration.md), [setup/deployment/operations](docs/runbook.md), and [verification results](docs/verification.md). Original requirements remain in `stats-project-prompt.md`.
 
-No live deployment has been performed. Configure the real Puncher table outputs, Stats OAuth client/origins, account, hosted zone, domain and role mappings before production use. Proposed domain: `stats.7028robotics.com`.
+No live deployment has been performed. The single AWS deployment is configured in `cdk/lib/config.ts`; the shared AWS account, hosted zone, and public Google OAuth client ID are the values used by fmea-app, as explicitly approved. The Stats table ARN is derived from Puncher's configured `puncher-prod-records` table. Confirm the Google OAuth client's authorized origins include both application domains before launch. GitHub Actions uses OIDC with the fixed deployment role ARN in the checked-in workflow; no GitHub environment variables, secrets, or long-lived AWS keys are required.

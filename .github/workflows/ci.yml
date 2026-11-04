@@ -1,16 +1,22 @@
-name: Stats checks
+name: CI
+
 on:
   push:
+    branches:
+      - "**"
   pull_request:
+
 permissions:
   contents: read
+
 jobs:
   validate:
+    name: Build, Test, and Synthesize
     runs-on: ubuntu-latest
     services:
       dynamodb:
         image: amazon/dynamodb-local:latest
-        ports: ['8000:8000']
+        ports: ["8000:8000"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -29,3 +35,29 @@ jobs:
         with:
           name: stats-test-results
           path: test-results/
+
+  deploy:
+    name: Deploy
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: stats-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run cdk:synth
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::738044534240:role/stats-github-deploy
+          aws-region: us-east-2
+      - run: npm run cdk:deploy -- --require-approval never
