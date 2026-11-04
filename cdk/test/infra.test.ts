@@ -118,7 +118,7 @@ it("synthesizes isolated tagged infrastructure and read-only exact source IAM", 
       }
   const roleDoc = JSON.stringify(Template.fromStack(role).toJSON());
   expect(roleDoc).toContain(
-    "repo:STMARobotics/Stats:ref:refs/heads/main",
+    "repo:STMARobotics@32277731/Stats@1443490446:ref:refs/heads/main",
   );
   expect(roleDoc).not.toContain(":environment:");
   expect(roleDoc).not.toContain("stats-production");
