@@ -24,7 +24,10 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm run check:activity-contract
       - run: npm run check
+      - name: Synthesize the opt-in activity consumer with synthetic configuration
+        run: npm run cdk:synth:activity
       - run: npm run test:db
         env:
           DYNAMODB_ENDPOINT: http://127.0.0.1:8000

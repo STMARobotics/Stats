@@ -1,5 +1,7 @@
 # STATS · STMA ROBOTICS / FRC 7028
 
+Cross-app integration foundation and rollout: [app harmonization](docs/app-harmonization.md).
+
 Independent, read-only student hours, leaderboards and staff reports for Puncher's canonical dataset. React + TypeScript, Google Identity Services/OIDC, Lambda, HTTP API, DynamoDB reader, private S3/CloudFront OAC and TypeScript CDK. All application text uses self-hosted Figtree.
 
 ## RUN THE LOCAL DEMO

@@ -6,6 +6,7 @@ await build({
   entryPoints: [
     resolve(projectRoot, "service/handler.ts"),
     resolve(projectRoot, "service/authorizer.ts"),
+    resolve(projectRoot, "service/activity-projection.ts"),
   ],
   outdir: resolve(projectRoot, "dist/service"),
   bundle: true,
