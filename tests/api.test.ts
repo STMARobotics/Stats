@@ -57,7 +57,7 @@ describe("read-only Stats API", () => {
       ])
         expect(source).not.toContain(`"${secret}"`);
     expect(r.headers["Cache-Control"]).toBe("private, no-store");
-    expect(r.headers.Vary).toBe("Authorization");
+    expect(r.headers.Vary).toBe("Cookie");
   });
   it("blocks IDOR, mutation, device access and staff escalation", async () => {
     const { call } = setup();

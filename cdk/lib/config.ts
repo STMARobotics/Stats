@@ -6,6 +6,7 @@ export interface Config {
   zoneName: string;
   domain: string;
   googleClientId: string;
+  googleClientSecretParameter: string;
   allowedDomain: string;
   puncherUrl: string;
   alertEmail?: string;
@@ -22,7 +23,8 @@ export const config: Config = {
   zoneName: "7028robotics.com",
   domain: "stats.7028robotics.com",
   googleClientId:
-    "574028865613-b8apa4bcpai776gtsqm14mdej3iubeha.apps.googleusercontent.com",
+    "574028865613-7leg6b1ae7mj6jmvf4ssspl273u6ek8t.apps.googleusercontent.com",
+  googleClientSecretParameter: "/stats/google-client-secret",
   allowedDomain: "stmarobotics.org",
   puncherUrl: "https://puncher.7028robotics.com",
   repository: "STMARobotics@32277731/Stats@1443490446",

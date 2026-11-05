@@ -179,7 +179,10 @@ function useData<T>(
       return () => controller.abort();
     }
     fetch(path, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "same-origin",
+      ...(token.startsWith("demo-")
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : {}),
       cache: "no-store",
       signal: controller.signal,
     })
@@ -607,7 +610,10 @@ function StaffReports({
     setExportError("");
     try {
       const r = await fetch(path + "&format=csv", {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "same-origin",
+        ...(token.startsWith("demo-")
+          ? { headers: { Authorization: `Bearer ${token}` } }
+          : {}),
         cache: "no-store",
       });
       if (!r.ok) {
@@ -831,38 +837,6 @@ function Login({
   signIn: (token: string) => void;
   message: string;
 }) {
-  const googleRef = useRef<HTMLDivElement>(null),
-    [googleError, setGoogleError] = useState("");
-  useEffect(() => {
-    if (config.demo || !config.googleClientId) return;
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.onload = () => {
-      const g = (window as any).google;
-      g.accounts.id.initialize({
-        client_id: config.googleClientId,
-        hd: config.allowedDomain,
-        callback: (r: any) => signIn(r.credential),
-        auto_select: false,
-      });
-      if (googleRef.current)
-        g.accounts.id.renderButton(googleRef.current, {
-          theme: "filled_black",
-          size: "large",
-          text: "signin_with",
-          shape: "rectangular",
-        });
-    };
-    script.onerror = () =>
-      setGoogleError(
-        "Google sign-in could not load. Check your connection and reload.",
-      );
-    document.head.append(script);
-    return () => {
-      script.remove();
-    };
-  }, [config]);
   return (
     <main className="login">
       <div className="login-brand">
@@ -900,14 +874,18 @@ function Login({
               </details>
             </>
           ) : config.googleClientId ? (
-            <div ref={googleRef} />
+            <button
+              className="mint-button"
+              onClick={() => location.assign("/api/auth/start")}
+            >
+              Continue with Google <Icon type="arrow" />
+            </button>
           ) : (
             <p className="error-text">
               Stats Google OAuth client is not configured. Ask the deployment
               administrator to configure this app’s client and origin.
             </p>
           )}
-          {googleError && <p role="alert">{googleError}</p>}
         </div>
       </div>
     </main>
@@ -1131,6 +1109,17 @@ function App() {
         ),
       );
   }, []);
+  useEffect(() => {
+    if (!config || config.demo) return;
+    fetch("/api/auth/session", {
+      credentials: "same-origin",
+      cache: "no-store",
+    })
+      .then((r) => {
+        if (r.ok) setToken("session");
+      })
+      .catch(() => undefined);
+  }, [config]);
   if (!config)
     return (
       <div className="access-state">
@@ -1148,14 +1137,18 @@ function App() {
       signOut={(m) => {
         setToken("");
         setMessage(m ?? "");
-        (window as any).google?.accounts.id.disableAutoSelect();
+        void fetch("/api/auth/logout", {
+          method: "POST",
+          credentials: "same-origin",
+          cache: "no-store",
+        });
       }}
     />
   ) : (
     <Login
       config={config}
       signIn={(t) => {
-        setToken(t);
+        if (t.startsWith("demo-")) setToken(t);
         setMessage("");
       }}
       message={message}

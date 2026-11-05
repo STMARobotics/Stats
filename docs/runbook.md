@@ -20,9 +20,9 @@ Cloud-backed development is not part of the single production deployment. Use Dy
 
 ## GOOGLE CONFIGURATION
 
-Stats uses the shared public Google OAuth Web client ID configured in `cdk/lib/config.ts`. Authorized JavaScript origins must include the Stats and Puncher production HTTPS domains and `http://127.0.0.1:4300` (and `http://localhost:4300` if used for local sign-in). Use Google Identity Services popup/callback sign-in; no redirect URI or client secret is required. The same client ID is published in `/config.json`. `ALLOWED_DOMAIN` is fixed in code to `stmarobotics.org`. Verify the Google console's authorized origins and app consent settings for the team's Workspace.
+Create a dedicated Google OAuth Web client for Stats. Add `https://stats.7028robotics.com/api/auth/callback` and `http://127.0.0.1:4300/api/auth/callback` as authorized redirect URIs. Set its client ID in `cdk/lib/config.ts` and store its client secret in SSM Parameter Store as a SecureString named `/stats/google-client-secret`; the OAuth Lambda reads this value at runtime. Local OAuth uses `GOOGLE_CLIENT_SECRET` in `.env`. The allowed domain is `stmarobotics.org`.
 
-Tokens stay in browser memory. Every sign-in and API request is server verified. Puncher tokens with another audience are rejected. Puncher admins provision exact Google subject/member links and explicit stats:student/stats:staff permissions; mentor/admin alone is insufficient. Deactivation is checked authoritatively per request. Do not enable dev-auth in production.
+The browser stores only an opaque HttpOnly session cookie; Google tokens remain server-side during callback verification. Sessions expire after seven days and are revoked on sign-out. Puncher admins provision exact Google subject/member links and explicit stats:student/stats:staff permissions; mentor/admin alone is insufficient. Deactivation is checked authoritatively per request.
 
 ## AWS CONFIGURATION
 

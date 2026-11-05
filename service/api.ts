@@ -34,7 +34,7 @@ export const respond = (
   headers: {
     "Content-Type": contentType,
     "Cache-Control": "private, no-store",
-    Vary: "Authorization",
+    Vary: "Cookie",
     "X-Content-Type-Options": "nosniff",
   },
   body:

@@ -1,10 +1,7 @@
-import { bearer, verifyGoogle } from "./auth";
+import { getSession as sessionPrincipal } from "./session";
 export async function handler(event: any) {
   try {
-    const principal = await verifyGoogle(
-      bearer(event.headers?.authorization ?? event.headers?.Authorization),
-      process.env.GOOGLE_CLIENT_ID,
-    );
+    const principal = await sessionPrincipal(event.headers ?? {});
     return { isAuthorized: true, context: { sub: principal.sub } };
   } catch {
     return { isAuthorized: false };

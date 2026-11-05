@@ -40,26 +40,28 @@ it("synthesizes isolated tagged infrastructure and read-only exact source IAM", 
   });
   const b = Template.fromStack(backend),
     f = Template.fromStack(front);
-  b.resourceCountIs("AWS::DynamoDB::Table", 0);
+  b.resourceCountIs("AWS::DynamoDB::Table", 1);
   f.resourceCountIs("AWS::DynamoDB::Table", 0);
   b.hasResourceProperties("AWS::ApiGatewayV2::Authorizer", {
     AuthorizerResultTtlInSeconds: 0,
     EnableSimpleResponses: true,
   });
-  for (const r of Object.values(
-    b.findResources("AWS::ApiGatewayV2::Route"),
-  ) as any[]) {
-    expect(r.Properties.AuthorizationType).toBe("CUSTOM");
-    expect(r.Properties.RouteKey).toMatch(/^GET \/api\//);
+  for (const r of Object.values(b.findResources("AWS::ApiGatewayV2::Route")) as any[]) {
+    if (r.Properties.RouteKey.includes("/api/auth/")) {
+      expect(r.Properties.AuthorizationType).toBe("NONE");
+    } else {
+      expect(r.Properties.AuthorizationType).toBe("CUSTOM");
+      expect(r.Properties.RouteKey).toMatch(/^GET \/api\//);
+    }
   }
   const statements = (
     Object.values(b.findResources("AWS::IAM::Policy")) as any[]
   )
     .flatMap((r) => r.Properties.PolicyDocument.Statement)
     .filter((s) => JSON.stringify(s.Action).includes("dynamodb:"));
-  expect(statements).toHaveLength(1);
-  expect(statements[0].Action).toEqual(["dynamodb:GetItem", "dynamodb:Query"]);
-  expect(statements[0].Resource).toEqual([
+  const sourceRead = statements.find((s) => JSON.stringify(s.Resource).includes(config.tableArn));
+  expect(sourceRead.Action).toEqual(["dynamodb:GetItem", "dynamodb:Query"]);
+  expect(sourceRead.Resource).toEqual([
     config.tableArn,
     config.tableArn + "/index/GSI1",
   ]);

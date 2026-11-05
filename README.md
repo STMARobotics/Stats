@@ -1,6 +1,6 @@
 # STATS · STMA ROBOTICS / FRC 7028
 
-Independent, read-only student hours, leaderboards and staff reports for Puncher's canonical dataset. React + TypeScript, Google Identity Services/OIDC, Lambda, HTTP API, DynamoDB reader, private S3/CloudFront OAC and TypeScript CDK. All application text uses self-hosted Figtree.
+Independent, read-only student hours, leaderboards and staff reports for Puncher's canonical dataset. React + TypeScript, Google OAuth with server-managed HttpOnly sessions, Lambda, HTTP API, a separate session table, read-only DynamoDB reader, private S3/CloudFront OAC and TypeScript CDK. All application text uses self-hosted Figtree.
 
 ## RUN THE LOCAL DEMO
 
@@ -34,6 +34,7 @@ npm run test:db
 | `ui/src` | My Hours, Leaderboard, staff reports, Google sign-in and responsive styles |
 | `service/domain.ts` | Shared eligibility, date/year rules, DTO normalization, ranks and safe CSV |
 | `service/auth.ts` | Server token verification and authoritative Puncher permission checks |
+| `service/session.ts` | Google OAuth callback, opaque cookie sessions, and session revocation |
 | `service/repository.ts` | Bounded, paginated read-only DynamoDB integration |
 | `service/api.ts` | Authorized read routes and explicit response DTOs |
 | `service/local.ts`, `service/fixtures.ts` | Loopback development adapter and isolated demo |
@@ -43,4 +44,4 @@ npm run test:db
 
 See [architecture](docs/architecture.md), [Puncher integration](docs/stats-integration.md), [setup/deployment/operations](docs/runbook.md), and [verification results](docs/verification.md). Original requirements remain in `stats-project-prompt.md`.
 
-No live deployment has been performed. The single AWS deployment is configured in `cdk/lib/config.ts`; the shared AWS account, hosted zone, and public Google OAuth client ID are the values used by fmea-app, as explicitly approved. The Stats table ARN is derived from Puncher's configured `puncher-prod-records` table. Confirm the Google OAuth client's authorized origins include both application domains before launch. GitHub Actions uses OIDC with the fixed deployment role ARN in the checked-in workflow; no GitHub environment variables, secrets, or long-lived AWS keys are required.
+No live deployment has been performed. The single AWS deployment is configured in `cdk/lib/config.ts`; Stats and fmea-app use separate Google OAuth clients and separate SSM SecureString client secrets. The Stats table ARN is derived from Puncher's configured `puncher-prod-records` table. Register the Stats callback URI in its dedicated Google OAuth client before launch. GitHub Actions uses OIDC with the fixed deployment role ARN in the checked-in workflow; no GitHub environment variables, secrets, or long-lived AWS keys are required.

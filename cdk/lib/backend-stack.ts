@@ -26,6 +26,15 @@ export class BackendStack extends Stack {
       tableArn: c.tableArn,
       globalIndexes: ["GSI1"],
     });
+    const sessions = new dynamo.Table(this, "Sessions", {
+      tableName: "stats-sessions",
+      partitionKey: { name: "pk", type: dynamo.AttributeType.STRING },
+      sortKey: { name: "sk", type: dynamo.AttributeType.STRING },
+      billingMode: dynamo.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: "ttl",
+      encryption: dynamo.TableEncryption.AWS_MANAGED,
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
     const fn = (name: string, entry: string, data: boolean) => {
       const group = new logs.LogGroup(this, `${name}Logs`, {
         logGroupName: `/aws/lambda/${prefix}-${name}`,
@@ -45,6 +54,16 @@ export class BackendStack extends Stack {
         environment: {
           DATA_MODE: "cloud",
           GOOGLE_CLIENT_ID: c.googleClientId,
+          ...(name === "reader" || name === "google-authorizer"
+            ? { SESSION_TABLE_NAME: sessions.tableName }
+            : {}),
+          ...(name === "oauth"
+            ? {
+                SESSION_TABLE_NAME: sessions.tableName,
+                GOOGLE_CLIENT_SECRET_PARAMETER: c.googleClientSecretParameter,
+                ALLOWED_ORIGIN: `https://${c.domain}`,
+              }
+            : {}),
           ...(data
             ? { TABLE_NAME: table.tableName, SOURCE_REGION: c.sourceRegion }
             : {}),
@@ -57,12 +76,35 @@ export class BackendStack extends Stack {
             resources: [c.tableArn, `${c.tableArn}/index/GSI1`],
           }),
         );
+      if (name === "reader" || name === "google-authorizer")
+        f.addToRolePolicy(new iam.PolicyStatement({
+          actions: ["dynamodb:GetItem"],
+          resources: [sessions.tableArn],
+        }));
+      if (name === "oauth") {
+        sessions.grantReadWriteData(f);
+        f.addToRolePolicy(new iam.PolicyStatement({
+          actions: ["ssm:GetParameter"],
+          resources: [`arn:${this.partition}:ssm:${this.region}:${this.account}:parameter${c.googleClientSecretParameter}`],
+        }));
+        f.addToRolePolicy(new iam.PolicyStatement({
+          actions: ["kms:Decrypt"],
+          resources: ["*"],
+          conditions: {
+            StringEquals: {
+              "kms:ViaService": `ssm.${this.region}.amazonaws.com`,
+              "kms:EncryptionContext:PARAMETER_ARN": `arn:${this.partition}:ssm:${this.region}:${this.account}:parameter${c.googleClientSecretParameter}`,
+            },
+          },
+        }));
+      }
       return f;
     };
     const apiFn = fn("reader", "service/handler.ts", true),
-      authorizerFn = fn("google-authorizer", "service/authorizer.ts", false);
+      authorizerFn = fn("google-authorizer", "service/authorizer.ts", false),
+      oauthFn = fn("oauth", "service/session.ts", false);
     const authorizer = new auth.HttpLambdaAuthorizer("Google", authorizerFn, {
-      identitySource: ["$request.header.Authorization"],
+      identitySource: ["$request.header.Cookie"],
       resultsCacheTtl: Duration.seconds(0),
       responseTypes: [auth.HttpLambdaResponseType.SIMPLE],
     });
@@ -104,12 +146,27 @@ export class BackendStack extends Stack {
           apiFn,
         ),
       });
+    for (const [path, method] of [
+      ["/api/auth/start", apigw.HttpMethod.GET],
+      ["/api/auth/callback", apigw.HttpMethod.GET],
+      ["/api/auth/session", apigw.HttpMethod.GET],
+      ["/api/auth/logout", apigw.HttpMethod.POST],
+    ] as const)
+      this.api.addRoutes({
+        path,
+        methods: [method],
+        authorizer: new apigw.HttpNoneAuthorizer(),
+        integration: new integrations.HttpLambdaIntegration(
+          path.replaceAll("/", "-"),
+          oauthFn,
+        ),
+      });
     const topic = new sns.Topic(this, "Alerts", {
       topicName: `${prefix}-alerts`,
     });
     if (c.alertEmail)
       topic.addSubscription(new subs.EmailSubscription(c.alertEmail));
-    for (const f of [apiFn, authorizerFn]) {
+    for (const f of [apiFn, authorizerFn, oauthFn]) {
       const alarm = new cw.Alarm(this, `${f.node.id}Errors`, {
         alarmName: `${prefix}-${f.node.id}-errors`,
         metric: f.metricErrors({ period: Duration.minutes(5) }),

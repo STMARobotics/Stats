@@ -1,7 +1,8 @@
 import { createServer } from "node:http";
 import { createApi, respond } from "./api";
 import { AppError } from "./domain";
-import { bearer, verifyGoogle } from "./auth";
+import { bearer } from "./auth";
+import { handler as sessionHandler, getSession } from "./session";
 import { productionRepository } from "./repository";
 import { assertDemoAllowed, demoNow, FixtureRepository } from "./fixtures";
 const demo = process.argv.includes("--demo");
@@ -19,10 +20,16 @@ createServer(async (req, res) => {
         demo,
         ...(demo ? { demoNow } : {}),
       });
-    else {
-      const token = bearer(req.headers.authorization);
+    else if (url.pathname.startsWith("/api/auth/")) {
+      result = await sessionHandler({
+        rawPath: url.pathname,
+        headers: req.headers,
+        queryStringParameters: Object.fromEntries(url.searchParams),
+      });
+    } else {
       let principal;
       if (demo) {
+        const token = bearer(req.headers.authorization);
         if (!/^demo-(alex|jordan|mentor|casey|unlinked)$/.test(token))
           throw new AppError(
             401,
@@ -31,7 +38,7 @@ createServer(async (req, res) => {
           );
         principal = { sub: token, email: `${token.slice(5)}@stmarobotics.org` };
       } else
-        principal = await verifyGoogle(token, process.env.GOOGLE_CLIENT_ID);
+        principal = await getSession(req.headers);
       result = await api({
         method: req.method ?? "",
         path: url.pathname,
@@ -48,6 +55,8 @@ createServer(async (req, res) => {
             message: "Local API configuration or data unavailable.",
           });
   }
+  if ("cookies" in result && result.cookies?.length)
+    res.setHeader("Set-Cookie", result.cookies);
   res.writeHead(result.statusCode, result.headers);
   res.end(result.body);
 }).listen(3100, "127.0.0.1", () =>
