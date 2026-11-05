@@ -1,4 +1,4 @@
-import { getSession as sessionPrincipal } from "./session";
+import { getSession as sessionPrincipal, requestHeaders } from "./session";
 import { createApi, respond } from "./api";
 import { AppError } from "./domain";
 import { productionRepository } from "./repository";
@@ -6,7 +6,9 @@ let api: ReturnType<typeof createApi>;
 export async function handler(event: any) {
   try {
     // Verify again so direct invocation and the local adapter share the same boundary.
-    const principal = await sessionPrincipal(event.headers ?? {});
+    const principal = await sessionPrincipal(
+      requestHeaders(event.headers ?? {}, event.cookies),
+    );
     api ??= createApi(productionRepository());
     return api({
       method: event.requestContext?.http?.method ?? "",

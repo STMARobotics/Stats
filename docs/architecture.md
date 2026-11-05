@@ -4,7 +4,7 @@
 
 React 19 + Vite + TypeScript on Node 24 keeps the student-facing app in one language. Shared domain functions keep eligibility consistent across totals, rankings, reports and exports. TypeScript CDK follows FMEA's deployment model. The backend imports Puncher's canonical table but never creates, tags, manages or writes to it. Stats owns a separate DynamoDB table for OAuth state and opaque sessions.
 
-The app uses Google OAuth authorization code + PKCE, a Lambda callback, an HTTP API and a private S3/CloudFront frontend. The browser only receives a Secure, HttpOnly, SameSite=Lax cookie. OAuth client secrets are read at runtime from SSM SecureString; no Google token or client secret is exposed to the UI.
+The app uses Google OAuth authorization code + PKCE, a Lambda callback, an HTTP API and a private S3/CloudFront frontend. API Gateway HTTP API v2 delivers request cookies in its `cookies` field; Lambda normalizes those with headers before validating OAuth state or resolving sessions. The browser only receives a Secure, HttpOnly, SameSite=Lax cookie. OAuth client secrets are read at runtime from SSM SecureString; no Google token or client secret is exposed to the UI.
 
 ## REQUEST FLOW
 

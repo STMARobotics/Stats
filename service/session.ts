@@ -44,6 +44,12 @@ function cookie(name: string, value: string, maxAge: number) {
 }
 function clearCookie(name: string) { return cookie(name, "", 0); }
 type RequestHeaders = Record<string, string | string[] | undefined>;
+export function requestHeaders(headers: RequestHeaders, cookies?: string[]): RequestHeaders {
+  if (!cookies?.length) return headers;
+  const raw = headers.cookie ?? headers.Cookie;
+  const headerCookie = Array.isArray(raw) ? raw.join(";") : raw;
+  return { ...headers, cookie: [headerCookie, ...cookies].filter(Boolean).join(";") };
+}
 function cookieValue(headers: RequestHeaders, name: string) {
   const raw = headers.cookie ?? headers.Cookie;
   const value = Array.isArray(raw) ? raw.join(";") : raw;
@@ -88,7 +94,7 @@ export async function beginOAuth() {
   return redirect(url.toString(), [cookie(stateCookieName(), state, OAUTH_SECONDS)]);
 }
 export async function finishOAuth(event: any) {
-  const headers = event.headers ?? {};
+  const headers = requestHeaders(event.headers ?? {}, event.cookies);
   const state = event.queryStringParameters?.state;
   const fromCookie = cookieValue(headers, stateCookieName());
   const clearState = clearCookie(stateCookieName());
@@ -208,9 +214,10 @@ export async function handler(event: any) {
   try {
     if (path === "/api/auth/start") return await beginOAuth();
     if (path === "/api/auth/callback") return await finishOAuth(event);
-    if (path === "/api/auth/logout") return await endSession(event.headers ?? {});
+    if (path === "/api/auth/logout")
+      return await endSession(requestHeaders(event.headers ?? {}, event.cookies));
     if (path === "/api/auth/session") {
-      await getSession(event.headers ?? {});
+      await getSession(requestHeaders(event.headers ?? {}, event.cookies));
       return response(200, { authenticated: true }, { "content-type": "application/json" });
     }
     return response(404, { message: "Not found" });
