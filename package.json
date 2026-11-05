@@ -22,13 +22,15 @@
     "test": "vitest run",
     "cdk:test": "npm run test --workspace=cdk",
     "test:browser": "playwright test",
-    "test:db": "node --env-file-if-exists=.env --import tsx --test tests/dynamo.integration.ts",
+    "test:db": "node --env-file-if-exists=.env --import tsx --test tests/dynamo.integration.ts tests/activity-dynamo.integration.ts",
     "db:init": "node --env-file-if-exists=.env --import tsx scripts/local-db.ts",
     "cdk:synth": "npm run synth --workspace=cdk",
     "cdk:diff": "npm exec --workspace=cdk -- cdk diff",
     "cdk:deploy": "npm run deploy --workspace=cdk -- --all",
     "check": "npm run build && npm test && npm run cdk:synth",
-    "format": "prettier --write \"{service,ui/src,cdk,scripts,tests}/**/*.{ts,tsx,mts,css,json}\" \"*.{json,ts}\""
+    "format": "prettier --write \"{service,ui/src,cdk,scripts,tests}/**/*.{ts,tsx,mts,css,json}\" \"*.{json,ts}\"",
+    "check:activity-contract": "node scripts/check-activity-contract.cjs",
+    "cdk:synth:activity": "npm run synth:activity --workspace=cdk -- -c validation=true"
   },
   "dependencies": {
     "concurrently": "^10.0.6"
