@@ -22,7 +22,7 @@ Cloud-backed development is not part of the single production deployment. Use Dy
 
 Create a dedicated Google OAuth Web client for Stats. Add `https://stats.7028robotics.com/api/auth/callback` and `http://127.0.0.1:4300/api/auth/callback` as authorized redirect URIs. Set its client ID in `cdk/lib/config.ts` and store its client secret in SSM Parameter Store as a SecureString named `/stats/google-client-secret`; the OAuth Lambda reads this value at runtime. Local OAuth uses `GOOGLE_CLIENT_SECRET` in `.env`. The allowed domain is `stmarobotics.org`.
 
-The browser stores only an opaque HttpOnly session cookie; Google tokens remain server-side during callback verification. Sessions expire after seven days and are revoked on sign-out. Puncher admins provision exact Google subject/member links and explicit stats:student/stats:staff permissions; mentor/admin alone is insufficient. Deactivation is checked authoritatively per request.
+The browser stores only an opaque HttpOnly session cookie; Google tokens remain server-side during callback verification. Sessions expire after seven days and are revoked on sign-out. Verified team Google accounts can view the leaderboard. My Hours is automatic for active students with verified Puncher links. CSV roster students establish their link by signing in to Puncher once. Staff Reports is automatic for approved Puncher mentors and still honors existing `stats:staff` grants. Deactivation is checked per request.
 
 ## AWS CONFIGURATION
 

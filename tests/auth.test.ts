@@ -81,27 +81,35 @@ describe("server Google boundary", () => {
       status: 503,
     });
   });
-  it("requires explicit Stats roles, active linking and authoritative enabled identity", async () => {
+  it("uses approved mentor access even without an attendance link", async () => {
     const repo = new FixtureRepository(),
-      principal = { sub: "demo-alex", email: "alex@stmarobotics.org" };
-    expect(await resolveViewer(repo, principal)).toMatchObject({
-      student: true,
+      principal = { sub: "demo-mentor", email: "mentor@stmarobotics.org" };
+    const identity = repo.records.find((r) => r.pk === "IDENTITY#demo-mentor")!;
+    identity.roles = [];
+    await expect(resolveViewer(repo, principal)).resolves.toMatchObject({
+      student: false,
       staff: false,
     });
-    repo.records.find((r) => r.pk === "IDENTITY#demo-alex")!.roles = [
-      "admin",
-      "mentor",
-    ];
-    await expect(resolveViewer(repo, principal)).rejects.toMatchObject({
-      status: 403,
+    identity.roles = ["mentor"];
+    const member = repo.records.find((r) => r.pk === "MEMBER#synthetic-mentor")!;
+    member.active = false;
+    await expect(resolveViewer(repo, principal)).resolves.toMatchObject({
+      staff: false,
     });
-    for (const id of ["casey", "unlinked"])
-      await expect(
-        resolveViewer(repo, {
-          sub: `demo-${id}`,
-          email: `${id}@stmarobotics.org`,
-        }),
-      ).rejects.toMatchObject({ status: 403 });
+    delete identity.memberId;
+    await expect(resolveViewer(repo, principal)).resolves.toEqual({
+      member: null,
+      student: false,
+      staff: true,
+    });
+    identity.roles = ["stats:staff"];
+    await expect(resolveViewer(repo, principal)).resolves.toMatchObject({
+      staff: true,
+    });
+    identity.enabled = false;
+    await expect(resolveViewer(repo, principal)).rejects.toMatchObject({
+      code: "ACCOUNT_DISABLED",
+    });
   });
   it("cannot enable demo auth/fixtures in deployed or production runtimes", () => {
     for (const env of [

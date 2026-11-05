@@ -51,10 +51,7 @@ export function demoRecords(): Item[] {
       email: `${id}@stmarobotics.org`,
       enabled: active,
       memberId,
-      roles:
-        id === "mentor"
-          ? ["mentor", "stats:staff"]
-          : ["student", "stats:student"],
+      roles: [id === "mentor" ? "mentor" : "student"],
     });
     const shop = (date: string, duration: number, n: number) => {
       const start = `${date}T19:00:00.000Z`,
@@ -166,7 +163,7 @@ export function demoRecords(): Item[] {
     googleSub: "demo-unlinked",
     email: "unlinked@stmarobotics.org",
     enabled: true,
-    roles: ["stats:student"],
+    roles: ["student"],
   });
   return records;
 }

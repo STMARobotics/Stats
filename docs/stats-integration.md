@@ -8,7 +8,9 @@ Supply Puncher's TableName, TableArn and TableRegion outputs as TABLE_NAME, PUNC
 
 Before returning attendance, read APP#PUNCHER / SCHEMA. Supported values: schemaVersion 1, America/Chicago, seconds, reportingYearConvention `ending year; June 2 through June 1 inclusive`. Breaking changes require coordinated contract versioning. Additive fields are accepted and never automatically disclosed.
 
-Puncher admins must provision enabled IDENTITY#verified-google-sub / METADATA mappings with `stats:student` or `stats:staff` in roles. Student access requires a linked active student member. Staff mapping may be unlinked but must have explicit stats:staff; a dual student/staff identity must also meet its student-link requirements. Identity email must match the verified Google email; an email change requires Puncher administration. Domain membership, mentor, admin, a card number, Airtable User and a Puncher kiosk secret confer no Stats access.
+A verified `@stmarobotics.org` Google account can view the leaderboard without a Puncher identity. When an identity exists, it must be enabled and match the verified Google account. My Hours is available automatically when Puncher links that account to an active student. Staff Reports is available automatically to approved Puncher mentors. Mentors can have an active attendance record or no linked record. Existing `stats:staff` grants also authorize Staff Reports.
+
+Stats uses either Puncher's explicit identity-to-member link or a CSV roster link verified by a student's first sign-in to Puncher. For the CSV path, Stats reads Puncher's `ROSTER_EMAIL`, `ROSTER_LOGIN`, and `BINDING` records to verify the current roster claim and Google subject. Stats does not grant My Hours from an email match alone or write identity records.
 
 ## READER POLICY
 
@@ -26,7 +28,7 @@ Stats queries only canonical member activity prefixes and never event counters, 
 
 1. Recompare Puncher's current published schema/fixture to these snapshots. Run `npm run check` and `npm run test:db` against a disposable local database.
 2. Before deploying, verify the production `TABLE_NAME`, `PUNCHER_TABLE_ARN` and `SOURCE_REGION` in `cdk/lib/config.ts` match the Puncher stack output and the source schema.
-3. After deployment, have Puncher provision approved Workspace identities with exact Stats permissions. Verify enabled/disabled/unlinked/student/staff access using the shared Google client.
+3. After deployment, verify leaderboard access with a Workspace account that has no Puncher mapping. Verify My Hours for students with explicit and verified CSV links, Staff Reports for an approved mentor without a Stats role, and denial for disabled identities.
 4. Compare known member/year totals, exact tie ranks and staff CSVs to approved records. Confirm overdue active visits earn zero before writer cleanup, warnings remain unchanged, and Stats makes no writes.
 5. Test direct API Gateway URLs as well as CloudFront, revoke an identity during a session, and verify immediately denied subsequent requests. Verify errors and missing metadata do not show zero-hour cards.
 6. Record the tested Puncher revision, table ARN, deployed environment and accepted results. No live acceptance has been claimed by this delivery.

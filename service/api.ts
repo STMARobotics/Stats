@@ -110,7 +110,8 @@ export function createApi(
         throw new AppError(400, "FILTER", "Unsupported query parameter.");
       if (path === "/api/me")
         return respond(200, {
-          displayName: viewer.member?.displayName ?? "Staff",
+          displayName:
+            viewer.member?.displayName ?? (viewer.staff ? "Staff" : "Team member"),
           student: viewer.student,
           staff: viewer.staff,
           currentYear: current,
@@ -127,7 +128,7 @@ export function createApi(
           throw new AppError(
             403,
             "STUDENT_ONLY",
-            "My Hours requires a student member link. Use staff reports.",
+            "My Hours requires an active student account linked in Puncher.",
           );
         const data = await teamData(repo, now);
         // Direct member lookup preserves private history if roster GSI has not caught up.
@@ -213,7 +214,7 @@ export function createApi(
           throw new AppError(
             403,
             "STAFF_ONLY",
-            "An explicit Stats staff permission is required for team reports.",
+            "Team reports require approved mentor or Stats staff access in Puncher.",
           );
         const view = q.view ?? "summary";
         if (

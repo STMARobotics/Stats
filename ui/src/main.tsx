@@ -225,8 +225,8 @@ function State({
       <Icon type={error ? "lock" : "hours"} size={30} />
       <h2>
         {error
-          ? error.code === "ACCOUNT_SETUP"
-            ? "Account setup needed"
+          ? error.code === "ACCOUNT_DISABLED" || error.code === "STAFF_ONLY"
+            ? "Access denied"
             : "Data unavailable"
           : "Loading your data"}
       </h2>
@@ -901,26 +901,33 @@ function Portal({
   signOut: (message?: string) => void;
 }) {
   const [revision, setRevision] = useState(0),
-    [page, setPage] = useState(location.hash.slice(1) || "hours"),
+    [route, setRoute] = useState(location.hash.slice(1)),
     [year, setYear] = useState<number | null>(null),
     [metric, setMetric] = useState("shop"),
     [offset, setOffset] = useState(0);
   const expired = () =>
     signOut("Your login expired. Sign in again to continue.");
   const me = useData<Me>("/api/me", token, expired, revision);
+  const homePage = me.data?.student
+    ? "hours"
+    : me.data?.staff
+      ? "reports"
+      : "leaderboard";
+  const page =
+    !route || route === "main" || (route === "hours" && !me.data?.student)
+      ? homePage
+      : route;
   useEffect(() => {
     const update = () => {
-      const route = location.hash.slice(1);
-      if (route !== "main") setPage(route || "hours");
+      const hash = location.hash.slice(1);
+      if (hash !== "main") setRoute(hash);
     };
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, []);
   useEffect(() => {
     if (me.data && year === null) setYear(me.data.currentYear);
-    if (me.data && !me.data.student && page === "hours")
-      location.hash = "reports";
-  }, [me.data]);
+  }, [me.data, year]);
   const selectedYear = year ?? me.data?.currentYear ?? 2027;
   const h = useData<Hours>(
     `/api/hours?year=${selectedYear}`,
@@ -936,7 +943,7 @@ function Portal({
   );
   const navigate = (p: string) => {
     location.hash = p;
-    setPage(p);
+    setRoute(p);
   };
   if (!me.data)
     return (
@@ -965,7 +972,7 @@ function Portal({
         Skip to content
       </a>
       <header className="app-header">
-        <a className="brand" href={me.data.student ? "#hours" : "#reports"}>
+        <a className="brand" href={`#${homePage}`}>
           STATS
         </a>
         <nav aria-label="Main navigation">
@@ -1045,9 +1052,9 @@ function Portal({
               loading={false}
               error={{
                 code: "STAFF_ONLY",
-                message: "An explicit Stats staff permission is required.",
+                message: "Team reports require approved mentor or Stats staff access in Puncher.",
               }}
-              retry={() => navigate("hours")}
+              retry={() => navigate(homePage)}
             />
           )
         ) : page === "hours" || page === "leaderboard" ? (
