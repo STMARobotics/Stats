@@ -103,7 +103,7 @@ test("staff reports filters and CSV export", async ({ page }) => {
     .analyze();
   expect(axe.violations).toEqual([]);
 });
-test("unlinked account and network failures have clear states", async ({
+test("unlinked users see the leaderboard and failures have clear states", async ({
   page,
 }) => {
   await page.goto("/");
@@ -112,7 +112,23 @@ test("unlinked account and network failures have clear states", async ({
     .getByRole("button", { name: "Unlinked account", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Account setup needed" }),
+    page.getByRole("heading", { name: "Team standings" }),
+  ).toBeVisible();
+  const nav = page.getByRole("navigation", { name: "Main navigation" });
+  await expect(nav.getByRole("link")).toHaveCount(1);
+  await expect(nav.getByRole("link", { name: "Leaderboard" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await page.goto("/#hours");
+  await expect(
+    page.getByRole("heading", { name: "Team standings" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page.getByText("Access-state examples").click();
+  await page.getByRole("button", { name: "Disabled former student" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Access denied" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Back to sign in" }).click();
   await page.route("**/api/hours?**", (route) => route.abort());

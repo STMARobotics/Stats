@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
 import { createApi } from "../service/api";
 import { demoNow, FixtureRepository } from "../service/fixtures";
 function setup() {
@@ -73,6 +74,73 @@ describe("read-only Stats API", () => {
     expect((await call("/api/hours", {}, "alex", "POST")).statusCode).toBe(405);
     expect((await call("/api/reports", {}, "device")).statusCode).toBe(403);
     expect((await call("/api/hours", {}, "unlinked")).statusCode).toBe(403);
+  });
+  it.each(["new-user", "unlinked"])(
+    "allows team standings without Stats roles or a member link (%s)",
+    async (id) => {
+      const { call } = setup();
+      const profile = await call("/api/me", {}, id);
+      expect(profile.statusCode).toBe(200);
+      expect(JSON.parse(profile.body)).toMatchObject({
+        student: false,
+        staff: false,
+      });
+      const board = await call("/api/leaderboard", {}, id);
+      expect(board.statusCode).toBe(200);
+      expect(JSON.parse(board.body).rows).toHaveLength(12);
+      expect((await call("/api/hours", {}, id)).statusCode).toBe(403);
+      expect((await call("/api/reports", { format: "csv" }, id)).statusCode).toBe(
+        403,
+      );
+    },
+  );
+  it("uses Puncher's verified CSV roster login for personal hours", async () => {
+    const { call, repo } = setup();
+    const email = "csv-student@stmarobotics.org";
+    const hash = createHash("sha256").update(email).digest("hex");
+    const member = repo.records.find(
+      (r) => r.pk === "MEMBER#synthetic-alex" && r.sk === "METADATA",
+    )!;
+    member.csvEmail = email;
+    const claim = {
+      pk: `ROSTER_EMAIL#${hash}`,
+      sk: "METADATA",
+      memberId: member.memberId,
+      retired: false,
+    };
+    repo.records.push(claim);
+
+    expect((await call("/api/hours", {}, "csv-student")).statusCode).toBe(403);
+    const login = {
+      pk: `ROSTER_LOGIN#${member.memberId}`,
+      sk: "METADATA",
+      sub: "demo-csv-student",
+    };
+    repo.records.push(login);
+    const hours = await call("/api/hours", {}, "csv-student");
+    expect(hours.statusCode).toBe(200);
+    expect(JSON.parse(hours.body).selected).toEqual({
+      shopSeconds: 86400,
+      volunteerSeconds: 7200,
+    });
+    expect((await call("/api/reports", {}, "csv-student")).statusCode).toBe(403);
+
+    login.sub = "different-google-subject";
+    expect((await call("/api/hours", {}, "csv-student")).statusCode).toBe(403);
+    login.sub = "demo-csv-student";
+    const binding = {
+      pk: `BINDING#${member.memberId}`,
+      sk: "METADATA",
+      googleSub: "different-google-subject",
+    };
+    repo.records.push(binding);
+    expect((await call("/api/hours", {}, "csv-student")).statusCode).toBe(403);
+    binding.googleSub = login.sub;
+    member.active = false;
+    expect((await call("/api/hours", {}, "csv-student")).statusCode).toBe(403);
+    member.active = true;
+    claim.retired = true;
+    expect((await call("/api/hours", {}, "csv-student")).statusCode).toBe(403);
   });
   it("switches year/metric, retains former students and paginates exact rankings", async () => {
     const { call } = setup();
