@@ -81,35 +81,14 @@ describe("server Google boundary", () => {
       status: 503,
     });
   });
-  it("uses approved mentor access even without an attendance link", async () => {
-    const repo = new FixtureRepository(),
-      principal = { sub: "demo-mentor", email: "mentor@stmarobotics.org" };
-    const identity = repo.records.find((r) => r.pk === "IDENTITY#demo-mentor")!;
-    identity.roles = [];
-    await expect(resolveViewer(repo, principal)).resolves.toMatchObject({
-      student: false,
-      staff: false,
-    });
-    identity.roles = ["mentor"];
-    const member = repo.records.find((r) => r.pk === "MEMBER#synthetic-mentor")!;
-    member.active = false;
-    await expect(resolveViewer(repo, principal)).resolves.toMatchObject({
-      staff: false,
-    });
-    delete identity.memberId;
-    await expect(resolveViewer(repo, principal)).resolves.toEqual({
-      member: null,
-      student: false,
-      staff: true,
-    });
-    identity.roles = ["stats:staff"];
-    await expect(resolveViewer(repo, principal)).resolves.toMatchObject({
-      staff: true,
-    });
-    identity.enabled = false;
-    await expect(resolveViewer(repo, principal)).rejects.toMatchObject({
-      code: "ACCOUNT_DISABLED",
-    });
+  it("uses the verified subject instead of matching by email", async () => {
+    const repo = new FixtureRepository();
+    await expect(
+      resolveViewer(repo, { sub: "another-subject", email: "alex@stmarobotics.org" }),
+    ).resolves.toEqual({ member: null, student: false, staff: false });
+    await expect(
+      resolveViewer(repo, { sub: "demo-alex", email: "alex.renamed@stmarobotics.org" }),
+    ).resolves.toMatchObject({ student: true, staff: false });
   });
   it("cannot enable demo auth/fixtures in deployed or production runtimes", () => {
     for (const env of [

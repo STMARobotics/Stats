@@ -1,7 +1,7 @@
-import type { Item } from "./domain";
+import { puncherSchemaVersion, type Item } from "./domain";
 import type { Repository } from "./repository";
 export const demoNow = "2026-11-02T21:00:00.000Z";
-const base = { schemaVersion: 1 };
+const base = { schemaVersion: puncherSchemaVersion };
 export const demoMembers = [
   ["alex", "Alex Morgan", true],
   ["jordan", "Jordan Lee", true],
@@ -16,6 +16,7 @@ export const demoMembers = [
   ["jamie", "Jamie Anderson", true],
   ["drew", "Drew Williams", true],
   ["mentor", "Robin Mentor", true],
+  ["admin", "Pat Admin", true],
   ["test", "Synthetic test account", true],
 ] as const;
 export function demoRecords(): Item[] {
@@ -30,35 +31,28 @@ export function demoRecords(): Item[] {
     },
   ];
   demoMembers.forEach(([id, name, active], i) => {
-    const memberId = `synthetic-${id}`;
+    const memberId = `demo-${id}`;
+    const role = id === "mentor" ? "MENTOR" : id === "admin" ? "ADMIN" : "STUDENT";
     records.push({
       ...base,
-      pk: `MEMBER#${memberId}`,
+      pk: `USER#${memberId}`,
       sk: "METADATA",
       memberId,
       displayName: name,
-      memberKind: id === "mentor" ? "mentor" : "student",
+      role,
+      email: `${id}@stmarobotics.org`,
+      barcode: String(i + 1).padStart(6, "0"),
       active,
-      gsi1pk: "MEMBERS",
+      gsi1pk: "USERS",
       gsi1sk: memberId,
       testAccount: id === "test",
-    });
-    records.push({
-      ...base,
-      pk: `IDENTITY#demo-${id}`,
-      sk: "METADATA",
-      googleSub: `demo-${id}`,
-      email: `${id}@stmarobotics.org`,
-      enabled: active,
-      memberId,
-      roles: [id === "mentor" ? "mentor" : "student"],
     });
     const shop = (date: string, duration: number, n: number) => {
       const start = `${date}T19:00:00.000Z`,
         sessionId = `${id}-${n}`;
       records.push({
         ...base,
-        pk: `MEMBER#${memberId}`,
+        pk: `ATTENDANCE#${memberId}`,
         sk: `SHOP#${start}#${sessionId}`,
         sessionId,
         memberId,
@@ -74,7 +68,7 @@ export function demoRecords(): Item[] {
         creditedSeconds: duration,
       });
     };
-    if (id !== "mentor" && id !== "test") {
+    if (role === "STUDENT" && id !== "test") {
       const seconds = [
         10800, 14400, 14400, 9901, 9900, 12600, 9000, 8100, 7200, 6300, 5400,
         4500,
@@ -84,7 +78,7 @@ export function demoRecords(): Item[] {
       shop("2026-06-01", 3600 + i * 100, 20);
       records.push({
         ...base,
-        pk: `MEMBER#${memberId}`,
+        pk: `ATTENDANCE#${memberId}`,
         sk: `LEGACYSHOP#2025-04-01#legacy-${id}`,
         memberId,
         shopDate: "2025-04-01",
@@ -95,7 +89,7 @@ export function demoRecords(): Item[] {
       });
       records.push({
         ...base,
-        pk: `MEMBER#${memberId}`,
+        pk: `ATTENDANCE#${memberId}`,
         sk: `VOLUNTEER#2026-10-24#award-${id}`,
         memberId,
         awardId: `award-${id}`,
@@ -109,10 +103,10 @@ export function demoRecords(): Item[] {
       });
     }
   });
-  const memberId = "synthetic-alex";
+  const memberId = "demo-alex";
   records.push({
     ...base,
-    pk: `MEMBER#${memberId}`,
+    pk: `ATTENDANCE#${memberId}`,
     sk: "SHOP#2026-11-02T20:00:00.000Z#active-demo",
     sessionId: "active-demo",
     memberId,
@@ -125,7 +119,7 @@ export function demoRecords(): Item[] {
   });
   records.push({
     ...base,
-    pk: `MEMBER#${memberId}`,
+    pk: `ATTENDANCE#${memberId}`,
     sk: "SHOP#2026-10-17T23:00:00.000Z#expired-demo",
     sessionId: "expired-demo",
     memberId,
@@ -143,7 +137,7 @@ export function demoRecords(): Item[] {
   ] as const) {
     records.push({
       ...base,
-      pk: `MEMBER#${memberId}`,
+      pk: `ATTENDANCE#${memberId}`,
       sk: `VOLUNTEER#${date ?? "UNDATED"}#${id}`,
       memberId,
       awardId: id,
@@ -156,15 +150,6 @@ export function demoRecords(): Item[] {
       creditedSeconds: seconds,
     });
   }
-  records.push({
-    ...base,
-    pk: "IDENTITY#demo-unlinked",
-    sk: "METADATA",
-    googleSub: "demo-unlinked",
-    email: "unlinked@stmarobotics.org",
-    enabled: true,
-    roles: ["student"],
-  });
   return records;
 }
 export class FixtureRepository implements Repository {
@@ -173,10 +158,10 @@ export class FixtureRepository implements Repository {
     return this.records.find((r) => r.pk === pk && r.sk === sk);
   }
   async roster() {
-    return this.records.filter((r) => r.gsi1pk === "MEMBERS");
+    return this.records.filter((r) => r.gsi1pk === "USERS");
   }
   async history(id: string) {
-    return this.records.filter((r) => r.pk === `MEMBER#${id}`);
+    return this.records.filter((r) => r.pk === `ATTENDANCE#${id}`);
   }
 }
 export function assertDemoAllowed(env = process.env) {

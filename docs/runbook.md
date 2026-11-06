@@ -12,7 +12,7 @@ npm run db:init
 npm run dev
 ```
 
-`db:init` can create/seed only `stats-local-*` tables at an explicit loopback endpoint. It refuses production/Lambda/cloud locations. To test real Google sign-in locally, configure the Stats OAuth client and set LOCAL_GOOGLE_SUB and LOCAL_GOOGLE_EMAIL to an approved test account's exact verified Google subject/email before running db:init. This creates a mapping only in the disposable local table; LOCAL_STATS_STAFF=true also enables synthetic local staff reporting. These variables never provision production roles. Operational mappings must be provisioned in Puncher.
+`db:init` can create/seed only `stats-local-*` tables at an explicit loopback endpoint. Use a fresh local v2 table when upgrading from the old fixtures. To test real Google sign-in locally, configure the Stats OAuth client and set `LOCAL_GOOGLE_SUB` and `LOCAL_GOOGLE_EMAIL` to the test account's verified Google subject and email before running `db:init`. This seeds Alex's synthetic account and attendance under that subject. Set `LOCAL_STATS_STAFF=true` to make the synthetic user a Mentor instead of a Student.
 
 An alternate official DynamoDB Local JAR can be run with a supported JDK: `java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -inMemory -sharedDb -port 8000`. On PowerShell quote the entire `-Djava.library.path=...` argument. The database integration test requires DYNAMODB_ENDPOINT; it creates a unique disposable `stats-local-integration-*` table and removes that table after testing. With no endpoint the test reports skipped, never a cloud pass.
 
@@ -22,11 +22,11 @@ Cloud-backed development is not part of the single production deployment. Use Dy
 
 Create a dedicated Google OAuth Web client for Stats. Add `https://stats.7028robotics.com/api/auth/callback` and `http://127.0.0.1:4300/api/auth/callback` as authorized redirect URIs. Set its client ID in `cdk/lib/config.ts` and store its client secret in SSM Parameter Store as a SecureString named `/stats/google-client-secret`; the OAuth Lambda reads this value at runtime. Local OAuth uses `GOOGLE_CLIENT_SECRET` in `.env`. The allowed domain is `stmarobotics.org`.
 
-The browser stores only an opaque HttpOnly session cookie; Google tokens remain server-side during callback verification. Sessions expire after seven days and are revoked on sign-out. Verified team Google accounts can view the leaderboard. My Hours is automatic for active students with verified Puncher links. CSV roster students establish their link by signing in to Puncher once. Staff Reports is automatic for approved Puncher mentors and still honors existing `stats:staff` grants. Deactivation is checked per request.
+The browser stores only an opaque HttpOnly session cookie. Google tokens remain server-side during callback verification. Sessions expire after seven days and are revoked on sign-out. Verified team Google accounts can view the leaderboard. Puncher creates a Student account at first sign-in. Active Puncher students get My Hours, and active mentors and admins get Staff Reports. Stats checks the current account status and role per request.
 
 ## AWS CONFIGURATION
 
-The single AWS deployment configuration is checked into `cdk/lib/config.ts`: account, domain, hosted zone, public Google client ID, and the Stats reader's exact Puncher table name/ARN/region. The source table is `puncher-prod-records` in us-east-2. Stats imports it read-only and never creates, tags, manages, or replaces it. Application stacks run in us-east-2; the CloudFront certificate stack runs in us-east-1.
+The single AWS deployment configuration is checked into `cdk/lib/config.ts`. The source table is `puncher-data` in us-east-2 and must report schema version 2. Stats imports it read-only. Application stacks run in us-east-2 and the CloudFront certificate stack runs in us-east-1.
 
 ## BOOTSTRAP AND GITHUB OIDC
 

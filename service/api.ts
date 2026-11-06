@@ -5,6 +5,7 @@ import {
   currentYear,
   entriesFor,
   leaderboard,
+  puncherSchemaVersion,
   readMember,
   totals,
   validDate,
@@ -80,8 +81,8 @@ export function createApi(
           "READ_ONLY",
           "Stats only supports read operations.",
         );
-      const viewer = await resolveViewer(repo, principal);
       await checkMetadata(await repo.get("APP#PUNCHER", "SCHEMA"));
+      const viewer = await resolveViewer(repo, principal);
       const now = clock(),
         current = currentYear(now);
       const year = q.year === undefined ? current : Number(q.year);
@@ -110,15 +111,14 @@ export function createApi(
         throw new AppError(400, "FILTER", "Unsupported query parameter.");
       if (path === "/api/me")
         return respond(200, {
-          displayName:
-            viewer.member?.displayName ?? (viewer.staff ? "Staff" : "Team member"),
+          displayName: viewer.member?.displayName ?? "Team member",
           student: viewer.student,
           staff: viewer.staff,
           currentYear: current,
         });
       if (path === "/api/health")
         return respond(200, {
-          schemaVersion: 1,
+          schemaVersion: puncherSchemaVersion,
           source: "Puncher",
           status: "available",
           asOf: now,
@@ -128,7 +128,7 @@ export function createApi(
           throw new AppError(
             403,
             "STUDENT_ONLY",
-            "My Hours requires an active student account linked in Puncher.",
+            "My Hours requires an active Puncher student account. Sign in to Puncher to set up your account.",
           );
         const data = await teamData(repo, now);
         // Direct member lookup preserves private history if roster GSI has not caught up.
@@ -214,7 +214,7 @@ export function createApi(
           throw new AppError(
             403,
             "STAFF_ONLY",
-            "Team reports require approved mentor or Stats staff access in Puncher.",
+            "Team reports require the Mentor or Admin role in Puncher.",
           );
         const view = q.view ?? "summary";
         if (

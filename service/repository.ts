@@ -56,12 +56,14 @@ export class DynamoRepository implements Repository {
     );
   }
   roster() {
-    return this.query("MEMBERS", "GSI1");
+    return this.query("USERS", "GSI1");
   }
   async history(memberId: string) {
     const rows: Item[] = [];
     for (const prefix of ["SHOP#", "LEGACYSHOP#", "VOLUNTEER#"])
-      rows.push(...(await this.query(`MEMBER#${memberId}`, undefined, prefix)));
+      rows.push(
+        ...(await this.query(`ATTENDANCE#${memberId}`, undefined, prefix)),
+      );
     return rows;
   }
 }

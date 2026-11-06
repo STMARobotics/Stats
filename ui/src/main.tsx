@@ -866,7 +866,7 @@ function Login({
               <details>
                 <summary>Access-state examples</summary>
                 <button onClick={() => signIn("demo-unlinked")}>
-                  Unlinked account
+                  No Puncher account
                 </button>
                 <button onClick={() => signIn("demo-casey")}>
                   Disabled former student
@@ -1039,6 +1039,13 @@ function Portal({
             Synthetic demo · {stamp(config.demoNow!)}
           </p>
         )}
+        {page === "leaderboard" && !me.data.student && !me.data.staff && (
+          <p className="small muted">
+            To see your own hours, sign in to{" "}
+            {config.puncherUrl ? <a href={config.puncherUrl}>Puncher</a> : "Puncher"}{" "}
+            to create your account, then return to Stats.
+          </p>
+        )}
         {page === "reports" ? (
           me.data.staff ? (
             <StaffReports
@@ -1052,7 +1059,7 @@ function Portal({
               loading={false}
               error={{
                 code: "STAFF_ONLY",
-                message: "Team reports require approved mentor or Stats staff access in Puncher.",
+                message: "Team reports require the Mentor or Admin role in Puncher.",
               }}
               retry={() => navigate(homePage)}
             />
