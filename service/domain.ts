@@ -118,14 +118,29 @@ const millis = (value: unknown) => {
     throw badData();
   }
 };
+function memberDisplayName(email: string, storedName: string) {
+  const address = /^([^@.\s]+)\.([^@.\s]+)@stmarobotics\.org$/i.exec(
+    email.trim(),
+  );
+  if (address) {
+    return address
+      .slice(1)
+      .map((part) =>
+        part
+          .toLowerCase()
+          .replace(/(^|[-'’])\p{L}/gu, (letter) => letter.toUpperCase()),
+      )
+      .join(" ");
+  }
+  return (!storedName.includes("@") && storedName.trim()) || "Team member";
+}
 export function readMember(raw: Item): Member {
   validate(raw, "user");
   if (raw.pk !== `USER#${raw.memberId}` || raw.gsi1sk !== raw.memberId)
     throw badData();
   return {
     memberId: raw.memberId,
-    // Puncher can store the email as the display name when Google has no name.
-    displayName: raw.displayName.includes("@") ? "Team member" : raw.displayName,
+    displayName: memberDisplayName(raw.email, raw.displayName),
     role: raw.role,
     active: raw.active,
     ...(raw.testAccount === true ? { testAccount: true } : {}),

@@ -90,16 +90,27 @@ describe("read-only Stats API", () => {
     expect((await call("/api/hours", {}, id)).statusCode).toBe(403);
     expect((await call("/api/reports", { format: "csv" }, id)).statusCode).toBe(403);
   });
-  it("uses current Puncher roles for private views and hides email fallback names", async () => {
+  it("uses current Puncher roles and displays names derived from team email addresses", async () => {
     const { call, repo } = setup();
     const user = repo.records.find((r) => r.pk === "USER#demo-alex")!;
+    user.email = "alex.o'neil-smith@stmarobotics.org";
     user.displayName = user.email;
-    expect(JSON.parse((await call("/api/me")).body)).toMatchObject({
-      displayName: "Team member",
+    const me = await call("/api/me");
+    expect(JSON.parse(me.body)).toMatchObject({
+      displayName: "Alex O'Neil-Smith",
       student: true,
       staff: false,
     });
-    expect((await call("/api/leaderboard")).body).not.toContain(user.email);
+    const leaderboard = await call("/api/leaderboard");
+    expect(JSON.parse(leaderboard.body).rows).toContainEqual(
+      expect.objectContaining({ displayName: "Alex O'Neil-Smith", isMe: true }),
+    );
+    for (const { body } of [me, leaderboard])
+      expect(body).not.toContain(user.email);
+    user.email = user.displayName = "alex@example.com";
+    expect(JSON.parse((await call("/api/me")).body).displayName).toBe(
+      "Team member",
+    );
     for (const id of ["mentor", "admin"]) {
       expect((await call("/api/reports", {}, id)).statusCode).toBe(200);
       expect((await call("/api/hours", {}, id)).statusCode).toBe(403);
