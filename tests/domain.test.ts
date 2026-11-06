@@ -90,6 +90,20 @@ describe("Puncher reader v2", () => {
     ).toBe(10800);
     expect(JSON.stringify(rows)).toBe(before);
   });
+  it("uses Puncher's credited time for completed visits that span a shop closure", () => {
+    const visit = fixture.records.find(
+      (r) => r.sk.startsWith("SHOP#") && r.status === "completed",
+    )!;
+    for (const creditedSeconds of [0, 900]) {
+      const entries = entriesFor(
+        [{ ...visit, creditedSeconds }],
+        visit.memberId!,
+        demoNow,
+      );
+      expect(entries[0]).toMatchObject({ status: "completed", creditedSeconds });
+      expect(totals(entries).shopSeconds).toBe(creditedSeconds);
+    }
+  });
   it("ignores additive fields/internal rollups and rejects unknown status/schema/invalid credit", () => {
     const row = fixture.records.find(
       (r) => r.sk.startsWith("SHOP#") && r.status === "completed",

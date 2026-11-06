@@ -175,7 +175,8 @@ export function entriesFor(
         if (
           end < start ||
           end >= cutoff ||
-          amount !== Math.floor((end - start) / 1000)
+          // Puncher credits only staffed time, which can be shorter than the visit.
+          amount > Math.floor((end - start) / 1000)
         )
           throw badData();
         credit = amount;

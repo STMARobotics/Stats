@@ -20,7 +20,7 @@ The reader role receives exactly:
 
 The API authorizer reads the separate Stats session table. The reader alone accesses the Puncher table. IAM constrains the source table and index. The backend checks the user's role and returns only the fields intended for that view.
 
-Stats queries only canonical member activity prefixes and never event counters, barcode/uniqueness/current claims, source documents, rollups, audits or notification state. Award snapshots determine credit; editing event metadata does not change historical award duration. Stats makes no approval, deduplication, identity-mapping or migration decisions.
+Stats queries only canonical member activity prefixes and never event counters, barcode/uniqueness/current claims, source documents, rollups, audits or notification state. Puncher records the staffed time for completed shop visits. Stats uses that credit and checks that it fits within the elapsed visit. Award snapshots determine credit; editing event metadata does not change historical award duration. Stats makes no approval, deduplication, identity-mapping or migration decisions.
 
 ## READ-ONLY ACCEPTANCE
 
