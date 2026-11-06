@@ -119,7 +119,7 @@ describe("read-only Stats API", () => {
     expect((await call("/api/reports")).statusCode).toBe(200);
     expect((await call("/api/hours")).statusCode).toBe(200);
   });
-  it("shows staff only their own history on My Hours without reading the team roster", async () => {
+  it("shows staff only their own history on My Stats without reading the team roster", async () => {
     const { call, repo } = setup();
     const visit = repo.records.find(
       (row) => row.pk === "ATTENDANCE#demo-alex" && row.sk.startsWith("SHOP#"),
@@ -130,7 +130,7 @@ describe("read-only Stats API", () => {
       memberId: "demo-mentor",
     });
     repo.roster = async () => {
-      throw new Error("My Hours must not read the team roster for staff");
+      throw new Error("My Stats must not read the team roster for staff");
     };
     const mentor = await call("/api/hours", {}, "mentor");
     expect(mentor.statusCode).toBe(200);

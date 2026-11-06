@@ -128,7 +128,7 @@ export function createApi(
           throw new AppError(
             403,
             "PUNCHER_ACCOUNT_REQUIRED",
-            "My Hours requires an active Puncher account. Sign in to Puncher to set up your account.",
+            "My Stats requires an active Puncher account. Sign in to Puncher to set up your account.",
           );
         const data = viewer.student ? await teamData(repo, now) : [];
         // Direct member lookup preserves private history if roster GSI has not caught up.

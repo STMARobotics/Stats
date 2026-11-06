@@ -6,7 +6,7 @@ test("student years, metrics, history, keyboard and responsive layout", async ({
   await page.goto("/");
   await page.getByRole("button", { name: "View as Alex · Student" }).click();
   await expect(
-    page.getByRole("heading", { name: "My Hours", exact: true }),
+    page.getByRole("heading", { name: "My Stats", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".stat.primary .big-number")).toContainText("24.0");
   await expect(page.locator(".asof")).toContainText("Updated");
@@ -16,7 +16,7 @@ test("student years, metrics, history, keyboard and responsive layout", async ({
     .focus();
   await page.keyboard.press("Enter");
   await expect(
-    page.getByRole("heading", { name: "My Hours", exact: true }),
+    page.getByRole("heading", { name: "My Stats", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Reports", exact: true }),
@@ -58,7 +58,7 @@ test("student years, metrics, history, keyboard and responsive layout", async ({
     path: `test-results/${info.project.name}-leaderboard.png`,
     fullPage: true,
   });
-  await page.getByRole("link", { name: "My Hours", exact: true }).click();
+  await page.getByRole("link", { name: "My Stats", exact: true }).click();
   await expect(page.locator(".stat.primary .big-number")).toContainText("24.0");
   await page.keyboard.press("Tab");
   expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe(
@@ -82,7 +82,7 @@ test("staff reports filters and CSV export", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "View as Robin · Staff" }).click();
   await expect(
-    page.getByRole("heading", { name: "My Hours", exact: true }),
+    page.getByRole("heading", { name: "My Stats", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Shop hours", exact: true }),
@@ -123,7 +123,7 @@ test("users without a Puncher account see setup instructions and can view the le
     .getByRole("button", { name: "No Puncher account", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "My Hours", exact: true }),
+    page.getByRole("heading", { name: "My Stats", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Set up your Puncher account" }),

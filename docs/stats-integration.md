@@ -8,7 +8,7 @@ Match the source ARN and region in `cdk/lib/config.ts` to Puncher's TableArn and
 
 Before returning attendance, read `APP#PUNCHER / SCHEMA`. Supported values are schema version 2, America/Chicago, seconds, and reporting year convention `ending year; June 2 through June 1 inclusive`. Missing or unsupported metadata produces an error. Additive fields are accepted and only explicit response fields are disclosed.
 
-Stats looks up `USER#<verified Google subject> / METADATA` on each request. My Hours opens by default and shows the signed-in user’s own attendance for any active Puncher account. Active `MENTOR` and `ADMIN` users can also open Reports. A verified `@stmarobotics.org` Google account can view the leaderboard before signing in to Puncher to create its user record. An inactive Puncher user is denied access. Puncher owns account creation and role changes.
+Stats looks up `USER#<verified Google subject> / METADATA` on each request. My Stats opens by default and shows the signed-in user’s own attendance for any active Puncher account. Active `MENTOR` and `ADMIN` users can also open Reports. A verified `@stmarobotics.org` Google account can view the leaderboard before signing in to Puncher to create its user record. An inactive Puncher user is denied access. Puncher owns account creation and role changes.
 
 ## READER POLICY
 
@@ -26,7 +26,7 @@ Stats queries only canonical member activity prefixes and never event counters, 
 
 1. Recompare Puncher's current published schema/fixture to these snapshots. Run `npm run check` and `npm run test:db` against a disposable local database.
 2. Before deploying, verify that `tableArn` and `sourceRegion` in `cdk/lib/config.ts` match the Puncher stack outputs and that the table reports schema v2.
-3. After deployment, verify leaderboard access before a user's first Puncher sign-in, My Hours for an active student, mentor and admin, Reports for an active mentor and admin, and denial for a disabled user.
+3. After deployment, verify leaderboard access before a user's first Puncher sign-in, My Stats for an active student, mentor and admin, Reports for an active mentor and admin, and denial for a disabled user.
 4. Compare known member/year totals, exact tie ranks and staff CSVs to approved records. Confirm overdue active visits earn zero before writer cleanup, warnings remain unchanged, and Stats makes no writes.
 5. Test direct API Gateway URLs as well as CloudFront. Disable a test user during a session and verify that the next request is denied. Verify that errors and missing metadata do not show zero-hour cards.
 6. Record the tested Puncher revision, table ARN, deployed environment and accepted results. No live acceptance has been claimed by this delivery.

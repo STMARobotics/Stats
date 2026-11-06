@@ -35,7 +35,7 @@ npm run test:db
 
 | Path | Purpose |
 | --- | --- |
-| `ui/src` | My Hours, Leaderboard, staff reports, Google sign-in and responsive styles |
+| `ui/src` | My Stats, Leaderboard, staff reports, Google sign-in and responsive styles |
 | `service/domain.ts` | Shared eligibility, date/year rules, DTO normalization, ranks and safe CSV |
 | `service/auth.ts` | Server token verification and authoritative Puncher permission checks |
 | `service/session.ts` | Google OAuth callback, opaque cookie sessions, and session revocation |

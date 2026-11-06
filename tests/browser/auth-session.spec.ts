@@ -51,7 +51,7 @@ test("restores the portal from an HttpOnly server session cookie after reload", 
 
   for (let reload = 0; reload < 2; reload++) {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "My Hours", exact: true }))
+    await expect(page.getByRole("heading", { name: "My Stats", exact: true }))
       .toBeVisible();
     expect(await page.evaluate(() => document.cookie)).not.toContain(sessionValue);
   }

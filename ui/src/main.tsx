@@ -327,7 +327,7 @@ function HistoryTable({
     </div>
   );
 }
-function MyHours({
+function MyStats({
   data,
   goBoard,
 }: {
@@ -964,7 +964,7 @@ function Portal({
         </a>
         <nav aria-label="Main navigation">
           <a aria-current={page === "hours" ? "page" : undefined} href="#hours">
-            My Hours
+            My Stats
           </a>
           <a
             aria-current={page === "leaderboard" ? "page" : undefined}
@@ -992,7 +992,7 @@ function Portal({
         <div className="page-heading">
           <h1>
             {page === "hours"
-              ? "My Hours"
+              ? "My Stats"
               : page === "leaderboard"
                 ? "Leaderboard"
                 : "Reports"}
@@ -1060,7 +1060,7 @@ function Portal({
               retry={() => setRevision((v) => v + 1)}
             />
           ) : page === "hours" && h.data ? (
-            <MyHours
+            <MyStats
               data={h.data}
               goBoard={(m) => {
                 setMetric(m);
