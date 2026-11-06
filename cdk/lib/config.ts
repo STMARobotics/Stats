@@ -17,7 +17,7 @@ export interface Config {
 export const config: Config = {
   account: "738044534240",
   tableArn:
-    "arn:aws:dynamodb:us-east-2:738044534240:table/puncher-prod-records",
+    "arn:aws:dynamodb:us-east-2:738044534240:table/puncher-data",
   sourceRegion: "us-east-2",
   zoneId: "Z014656337LGZWAE9JKJP",
   zoneName: "7028robotics.com",
