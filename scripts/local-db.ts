@@ -51,30 +51,24 @@ try {
   );
 }
 const doc = DynamoDBDocumentClient.from(client);
-for (const Item of demoRecords())
-  await doc.send(new PutCommand({ TableName: table, Item }));
-if (
-  process.env.LOCAL_GOOGLE_SUB &&
-  process.env.LOCAL_GOOGLE_EMAIL?.endsWith("@stmarobotics.org")
-) {
-  await doc.send(
-    new PutCommand({
-      TableName: table,
-      Item: {
-        schemaVersion: 1,
-        pk: `IDENTITY#${process.env.LOCAL_GOOGLE_SUB}`,
-        sk: "METADATA",
-        googleSub: process.env.LOCAL_GOOGLE_SUB,
-        email: process.env.LOCAL_GOOGLE_EMAIL,
-        memberId: "synthetic-alex",
-        enabled: true,
-        roles: [
-          "stats:student",
-          ...(process.env.LOCAL_STATS_STAFF === "true" ? ["stats:staff"] : []),
-        ],
-      },
-    }),
-  );
+const sub = process.env.LOCAL_GOOGLE_SUB;
+const email = process.env.LOCAL_GOOGLE_EMAIL?.toLowerCase();
+for (const row of demoRecords()) {
+  let item = row;
+  if (sub && email?.endsWith("@stmarobotics.org") && row.memberId === "demo-alex") {
+    const isUser = row.pk === "USER#demo-alex";
+    item = {
+      ...row,
+      memberId: sub,
+      pk: `${isUser ? "USER" : "ATTENDANCE"}#${sub}`,
+      ...(isUser && {
+        email,
+        gsi1sk: sub,
+        role: process.env.LOCAL_STATS_STAFF === "true" ? "MENTOR" : "STUDENT",
+      }),
+    };
+  }
+  await doc.send(new PutCommand({ TableName: table, Item: item }));
 }
 console.log(
   "Seeded disposable local synthetic data. Real Google authentication still applies to npm run dev.",

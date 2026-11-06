@@ -1,12 +1,15 @@
 import { Temporal } from "@js-temporal/polyfill";
 import Ajv from "ajv";
-import schema from "../contracts/stats-reader.v1.json";
+import schema from "../contracts/stats-reader.v2.json";
+
+export const puncherSchemaVersion =
+  schema.definitions.metadata.properties.schemaVersion.const;
 
 export type Item = Record<string, any> & { pk: string; sk: string };
 export type Member = {
   memberId: string;
   displayName: string;
-  memberKind: "student" | "mentor";
+  role: "STUDENT" | "MENTOR" | "ADMIN";
   active: boolean;
   testAccount?: boolean;
 };
@@ -54,11 +57,11 @@ export function validate(item: Item | undefined, type: string): Item {
   return item;
 }
 export function checkMetadata(item?: Item) {
-  if (!item || item.schemaVersion !== 1)
+  if (!item || item.schemaVersion !== puncherSchemaVersion)
     throw new AppError(
       503,
       "UNSUPPORTED_SCHEMA",
-      "Puncher schema is missing or unsupported. Stats supports reader contract v1.",
+      `Puncher schema is missing or unsupported. Stats supports reader contract v${puncherSchemaVersion}.`,
     );
   validate(item, "metadata");
   if (
@@ -116,13 +119,14 @@ const millis = (value: unknown) => {
   }
 };
 export function readMember(raw: Item): Member {
-  validate(raw, "member");
-  if (raw.pk !== `MEMBER#${raw.memberId}` || raw.sk !== "METADATA")
+  validate(raw, "user");
+  if (raw.pk !== `USER#${raw.memberId}` || raw.gsi1sk !== raw.memberId)
     throw badData();
   return {
     memberId: raw.memberId,
-    displayName: raw.displayName,
-    memberKind: raw.memberKind,
+    // Puncher can store the email as the display name when Google has no name.
+    displayName: raw.displayName.includes("@") ? "Team member" : raw.displayName,
+    role: raw.role,
     active: raw.active,
     ...(raw.testAccount === true ? { testAccount: true } : {}),
   };
@@ -146,7 +150,7 @@ export function entriesFor(
       r,
       kind === "shop" ? "shop" : kind === "legacy" ? "legacyShop" : "volunteer",
     );
-    if (r.memberId !== memberId || r.pk !== `MEMBER#${memberId}`)
+    if (r.memberId !== memberId || r.pk !== `ATTENDANCE#${memberId}`)
       throw badData();
     const date = (kind === "volunteer" ? r.eventDate : r.shopDate) ?? null;
     if (date !== null) validDate(date);
@@ -246,7 +250,7 @@ export function leaderboard(
   metric: "shop" | "volunteer",
 ) {
   const rows = data
-    .filter((d) => d.member.memberKind === "student" && !d.member.testAccount)
+    .filter((d) => d.member.role === "STUDENT" && !d.member.testAccount)
     .map((d) => ({
       memberId: d.member.memberId,
       displayName: d.member.displayName,

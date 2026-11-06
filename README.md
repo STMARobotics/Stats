@@ -15,7 +15,7 @@ npm ci
 npm run demo
 ```
 
-Open **http://127.0.0.1:4300**. Choose Alex (student) or Robin (staff); unlinked and disabled-account examples are under Access-state examples. The API uses port 3100 so Stats can run alongside Puncher. Synthetic data uses a fixed November 2, 2026 clock, multiple years, exact ties, nearly equal rounded hours, a former student, active and logically expired visits, pending/unknown/voided credits and historical hour-only entries. No Google credentials or AWS account are needed for this explicit demonstration.
+Open **http://127.0.0.1:4300**. Choose Alex (student) or Robin (staff). The access-state examples show a user with no Puncher account and a disabled account. The API uses port 3100 so Stats can run alongside Puncher. Synthetic data uses a fixed November 2, 2026 clock, multiple years, exact ties, nearly equal rounded hours, a former student, active and logically expired visits, pending/unknown/voided credits and historical hour-only entries. No Google credentials or AWS account are needed for this demo.
 
 `npm run dev` instead requires explicit data configuration and real Google OIDC. Missing cloud configuration never selects demo data. Fixture adapters and fake tokens are absent from deployed Lambda bundles.
 
@@ -42,10 +42,10 @@ npm run test:db
 | `service/repository.ts` | Bounded, paginated read-only DynamoDB integration |
 | `service/api.ts` | Authorized read routes and explicit response DTOs |
 | `service/local.ts`, `service/fixtures.ts` | Loopback development adapter and isolated demo |
-| `contracts` | Snapshot of Puncher's published v1 JSON Schema and language-neutral fixture |
+| `contracts` | Snapshot of Puncher's published v2 JSON Schema and test fixture |
 | `cdk` | Typed single-deployment configuration, separate certificate/backend/frontend stacks, and GitHub deployment trust |
 | `tests` | Rules, security, contract, infrastructure, database and browser checks |
 
 See [architecture](docs/architecture.md), [Puncher integration](docs/stats-integration.md), [setup/deployment/operations](docs/runbook.md), and [verification results](docs/verification.md). Original requirements remain in `stats-project-prompt.md`.
 
-No live deployment has been performed. The single AWS deployment is configured in `cdk/lib/config.ts`; Stats and fmea-app use separate Google OAuth clients and separate SSM SecureString client secrets. The Stats table ARN is derived from Puncher's configured `puncher-prod-records` table. Register the Stats callback URI in its dedicated Google OAuth client before launch. GitHub Actions uses OIDC with the fixed deployment role ARN in the checked-in workflow; no GitHub environment variables, secrets, or long-lived AWS keys are required.
+The AWS deployment is configured in `cdk/lib/config.ts`. Stats reads Puncher's `puncher-data` table using reader contract v2. Stats uses a dedicated Google OAuth client and SSM SecureString secret. Register the Stats callback URI in its Google OAuth client before launch. GitHub Actions uses OIDC and the deployment role ARN in the checked-in workflow.

@@ -6,19 +6,26 @@ import {
   entriesFor,
   leaderboard,
   localDate,
+  readMember,
   reportingYear,
   totals,
   yearInterval,
 } from "../service/domain";
 import { demoNow, demoRecords } from "../service/fixtures";
-import fixture from "../contracts/fixtures/puncher-reader-v1.json";
+import fixture from "../contracts/fixtures/puncher-reader-v2.json";
 
-describe("Puncher reader v1", () => {
+describe("Puncher reader v2", () => {
   it("agrees with Puncher published fixture totals and event-date grouping", () => {
     const id = "11111111-1111-4111-8111-111111111111";
     checkMetadata(fixture.records[0]);
+    expect(readMember(fixture.records[1])).toEqual({
+      memberId: id,
+      displayName: "Alex Example",
+      role: "STUDENT",
+      active: true,
+    });
     const entries = entriesFor(
-      fixture.records.filter((r) => r.pk === `MEMBER#${id}`),
+      fixture.records.filter((r) => r.pk === `ATTENDANCE#${id}`),
       id,
       demoNow,
     );
@@ -61,9 +68,9 @@ describe("Puncher reader v1", () => {
     expect(totals(entries, 2027).volunteerSeconds).toBe(0);
   });
   it("logically expires active visits without a write and preserves earlier same-day credit", () => {
-    const rows = demoRecords().filter((r) => r.pk === "MEMBER#synthetic-alex");
+    const rows = demoRecords().filter((r) => r.pk === "ATTENDANCE#demo-alex");
     const before = JSON.stringify(rows);
-    const entries = entriesFor(rows, "synthetic-alex", demoNow);
+    const entries = entriesFor(rows, "demo-alex", demoNow);
     expect(entries.find((e) => e.id === "active-demo")).toMatchObject({
       status: "active",
       creditedSeconds: 0,
@@ -93,7 +100,7 @@ describe("Puncher reader v1", () => {
         entriesFor(
           [
             { ...row, newField: "ok" },
-            { pk: `MEMBER#${id}`, sk: "SUMMARY#SHOP", creditedSeconds: 999999 },
+            { pk: `ATTENDANCE#${id}`, sk: "SUMMARY#SHOP", creditedSeconds: 999999 },
           ],
           id,
           demoNow,
@@ -102,14 +109,14 @@ describe("Puncher reader v1", () => {
     ).toBe(3600);
     for (const patch of [
       { status: "new-status" },
-      { schemaVersion: 2 },
+      { schemaVersion: 1 },
       { creditedSeconds: 3601 },
       { reportingYear: 2027 },
       { endedAt: row.cutoffAt },
     ])
       expect(() => entriesFor([{ ...row, ...patch }], id, demoNow)).toThrow();
     expect(() =>
-      checkMetadata({ ...fixture.records[0], schemaVersion: 2 }),
+      checkMetadata({ ...fixture.records[0], schemaVersion: 1 }),
     ).toThrow(/unsupported/);
     expect(() => reportingYear("2026-02-30")).toThrow();
     const legacy = fixture.records.find(
@@ -138,8 +145,7 @@ describe("Puncher reader v1", () => {
       member: {
         memberId: id,
         displayName: i < 3 ? "Same name" : id,
-        memberKind:
-          id === "mentor" ? ("mentor" as const) : ("student" as const),
+        role: id === "mentor" ? ("MENTOR" as const) : ("STUDENT" as const),
         active: id !== "former",
         testAccount: id === "test",
       },

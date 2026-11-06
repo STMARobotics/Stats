@@ -103,17 +103,18 @@ test("staff reports filters and CSV export", async ({ page }) => {
     .analyze();
   expect(axe.violations).toEqual([]);
 });
-test("unlinked users see the leaderboard and failures have clear states", async ({
+test("users without a Puncher account see the leaderboard and failures have clear states", async ({
   page,
 }) => {
   await page.goto("/");
   await page.getByText("Access-state examples").click();
   await page
-    .getByRole("button", { name: "Unlinked account", exact: true })
+    .getByRole("button", { name: "No Puncher account", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "Team standings" }),
   ).toBeVisible();
+  await expect(page.getByText(/To see your own hours, sign in to/)).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Main navigation" });
   await expect(nav.getByRole("link")).toHaveCount(1);
   await expect(nav.getByRole("link", { name: "Leaderboard" })).toHaveAttribute(

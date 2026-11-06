@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { createHash } from "node:crypto";
 import { createApi } from "../service/api";
 import { demoNow, FixtureRepository } from "../service/fixtures";
 function setup() {
@@ -53,7 +52,8 @@ describe("read-only Stats API", () => {
         "provenance",
         "pk",
         "roles",
-        "cardNumber",
+        "barcode",
+        "email",
         "originalApproval",
       ])
         expect(source).not.toContain(`"${secret}"`);
@@ -64,9 +64,9 @@ describe("read-only Stats API", () => {
     const { call } = setup();
     for (const path of ["/api/hours", "/api/leaderboard"])
       expect(
-        (await call(path, { memberId: "synthetic-jordan" })).statusCode,
+        (await call(path, { memberId: "demo-jordan" })).statusCode,
       ).toBe(400);
-    expect((await call("/api/hours/synthetic-jordan")).statusCode).toBe(404);
+    expect((await call("/api/hours/demo-jordan")).statusCode).toBe(404);
     expect((await call("/api/reports")).statusCode).toBe(403);
     expect((await call("/api/reports", { format: "csv" })).statusCode).toBe(
       403,
@@ -75,72 +75,38 @@ describe("read-only Stats API", () => {
     expect((await call("/api/reports", {}, "device")).statusCode).toBe(403);
     expect((await call("/api/hours", {}, "unlinked")).statusCode).toBe(403);
   });
-  it.each(["new-user", "unlinked"])(
-    "allows team standings without Stats roles or a member link (%s)",
-    async (id) => {
-      const { call } = setup();
-      const profile = await call("/api/me", {}, id);
-      expect(profile.statusCode).toBe(200);
-      expect(JSON.parse(profile.body)).toMatchObject({
-        student: false,
-        staff: false,
-      });
-      const board = await call("/api/leaderboard", {}, id);
-      expect(board.statusCode).toBe(200);
-      expect(JSON.parse(board.body).rows).toHaveLength(12);
-      expect((await call("/api/hours", {}, id)).statusCode).toBe(403);
-      expect((await call("/api/reports", { format: "csv" }, id)).statusCode).toBe(
-        403,
-      );
-    },
-  );
-  it("uses Puncher's verified CSV roster login for personal hours", async () => {
-    const { call, repo } = setup();
-    const email = "csv-student@stmarobotics.org";
-    const hash = createHash("sha256").update(email).digest("hex");
-    const member = repo.records.find(
-      (r) => r.pk === "MEMBER#synthetic-alex" && r.sk === "METADATA",
-    )!;
-    member.csvEmail = email;
-    const claim = {
-      pk: `ROSTER_EMAIL#${hash}`,
-      sk: "METADATA",
-      memberId: member.memberId,
-      retired: false,
-    };
-    repo.records.push(claim);
-
-    expect((await call("/api/hours", {}, "csv-student")).statusCode).toBe(403);
-    const login = {
-      pk: `ROSTER_LOGIN#${member.memberId}`,
-      sk: "METADATA",
-      sub: "demo-csv-student",
-    };
-    repo.records.push(login);
-    const hours = await call("/api/hours", {}, "csv-student");
-    expect(hours.statusCode).toBe(200);
-    expect(JSON.parse(hours.body).selected).toEqual({
-      shopSeconds: 86400,
-      volunteerSeconds: 7200,
+  it("allows team standings before the first sign-in to Puncher", async () => {
+    const { call } = setup();
+    const id = "unlinked";
+    const profile = await call("/api/me", {}, id);
+    expect(profile.statusCode).toBe(200);
+    expect(JSON.parse(profile.body)).toMatchObject({
+      student: false,
+      staff: false,
     });
-    expect((await call("/api/reports", {}, "csv-student")).statusCode).toBe(403);
-
-    login.sub = "different-google-subject";
-    expect((await call("/api/hours", {}, "csv-student")).statusCode).toBe(403);
-    login.sub = "demo-csv-student";
-    const binding = {
-      pk: `BINDING#${member.memberId}`,
-      sk: "METADATA",
-      googleSub: "different-google-subject",
-    };
-    repo.records.push(binding);
-    expect((await call("/api/hours", {}, "csv-student")).statusCode).toBe(403);
-    binding.googleSub = login.sub;
-    member.active = false;
-    expect((await call("/api/hours", {}, "csv-student")).statusCode).toBe(403);
-    member.active = true;
-    claim.retired = true;
-    expect((await call("/api/hours", {}, "csv-student")).statusCode).toBe(403);
+    const board = await call("/api/leaderboard", {}, id);
+    expect(board.statusCode).toBe(200);
+    expect(JSON.parse(board.body).rows).toHaveLength(12);
+    expect((await call("/api/hours", {}, id)).statusCode).toBe(403);
+    expect((await call("/api/reports", { format: "csv" }, id)).statusCode).toBe(403);
+  });
+  it("uses current Puncher roles for private views and hides email fallback names", async () => {
+    const { call, repo } = setup();
+    const user = repo.records.find((r) => r.pk === "USER#demo-alex")!;
+    user.displayName = user.email;
+    expect(JSON.parse((await call("/api/me")).body)).toMatchObject({
+      displayName: "Team member",
+      student: true,
+      staff: false,
+    });
+    expect((await call("/api/leaderboard")).body).not.toContain(user.email);
+    for (const id of ["mentor", "admin"]) {
+      expect((await call("/api/reports", {}, id)).statusCode).toBe(200);
+      expect((await call("/api/hours", {}, id)).statusCode).toBe(403);
+    }
+    user.role = "MENTOR";
+    expect((await call("/api/reports")).statusCode).toBe(200);
+    expect((await call("/api/hours")).statusCode).toBe(403);
   });
   it("switches year/metric, retains former students and paginates exact rankings", async () => {
     const { call } = setup();
@@ -172,23 +138,23 @@ describe("read-only Stats API", () => {
       JSON.parse((await call("/api/hours", { year: "2024" })).body).selected,
     ).toEqual({ shopSeconds: 0, volunteerSeconds: 0 });
   });
-  it("rechecks revoked identities and isolates users without stale caches", async () => {
+  it("rechecks disabled accounts and isolates users without stale caches", async () => {
     const { repo, call } = setup();
     const a = JSON.parse((await call("/api/hours")).body),
       b = JSON.parse((await call("/api/hours", {}, "jordan")).body);
     expect(a.selected.shopSeconds).not.toBe(b.selected.shopSeconds);
-    repo.records.find((r) => r.pk === "IDENTITY#demo-alex")!.enabled = false;
+    repo.records.find((r) => r.pk === "USER#demo-alex")!.active = false;
     expect((await call("/api/leaderboard")).statusCode).toBe(403);
     expect((await call("/api/hours", {}, "jordan")).statusCode).toBe(200);
   });
   it("reports source and schema failures explicitly without returning plausible zero totals", async () => {
     const { repo, call } = setup();
-    repo.records[0].schemaVersion = 2;
+    repo.records[0].schemaVersion = 1;
     const r = await call("/api/hours");
     expect(r.statusCode).toBe(503);
     expect(JSON.parse(r.body).code).toBe("UNSUPPORTED_SCHEMA");
     expect(r.body).not.toContain("shopSeconds");
-    repo.records[0].schemaVersion = 1;
+    repo.records[0].schemaVersion = 2;
     repo.history = async () => {
       throw new Error("network failed with sensitive data");
     };

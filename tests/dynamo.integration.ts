@@ -11,7 +11,7 @@ import { createApi } from "../service/api";
 import { demoRecords, demoNow } from "../service/fixtures";
 const endpoint = process.env.DYNAMODB_ENDPOINT;
 test(
-  "DynamoDB Local: real pagination, source queries, identity revocation, reader DTOs",
+  "DynamoDB Local: real pagination, v2 source queries, account revocation, reader DTOs",
   { skip: !endpoint },
   async () => {
     assert.match(endpoint!, /^http:\/\/(localhost|127\.0\.0\.1):\d+$/);
@@ -65,10 +65,10 @@ test(
           new PutCommand({
             TableName: table,
             Item: {
-              schemaVersion: 1,
-              pk: "MEMBER#synthetic-alex",
+              schemaVersion: 2,
+              pk: "ATTENDANCE#demo-alex",
               sk: `LEGACYSHOP#2026-07-01#page-${String(i).padStart(3, "0")}`,
-              memberId: "synthetic-alex",
+              memberId: "demo-alex",
               shopDate: "2026-07-01",
               reportingYear: 2027,
               status: "approved",
@@ -77,7 +77,7 @@ test(
             },
           }),
         );
-      assert.ok((await repo.history("synthetic-alex")).length > 100);
+      assert.ok((await repo.history("demo-alex")).length > 100);
       const updated = await api({
         method: "GET",
         path: "/api/hours",
@@ -85,11 +85,11 @@ test(
         principal,
       });
       assert.equal(JSON.parse(updated.body).selected.shopSeconds, 86515);
-      const identity = await repo.get("IDENTITY#demo-alex", "METADATA");
+      const user = await repo.get("USER#demo-alex", "METADATA");
       await doc.send(
         new PutCommand({
           TableName: table,
-          Item: { ...identity, enabled: false },
+          Item: { ...user, active: false },
         }),
       );
       assert.equal(
