@@ -19,7 +19,7 @@ test("student years, metrics, history, keyboard and responsive layout", async ({
     page.getByRole("heading", { name: "My Hours", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Staff Reports", exact: true }),
+    page.getByRole("link", { name: "Reports", exact: true }),
   ).toHaveCount(0);
   expect(
     await page
@@ -41,6 +41,7 @@ test("student years, metrics, history, keyboard and responsive layout", async ({
   await expect(
     page.getByRole("heading", { name: "Team standings" }),
   ).toBeVisible();
+  await expect(page.locator(".student-name .avatar")).toHaveCount(0);
   await page
     .getByRole("combobox", { name: "Reporting year" })
     .selectOption("2027");
@@ -81,7 +82,17 @@ test("staff reports filters and CSV export", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "View as Robin · Staff" }).click();
   await expect(
-    page.getByRole("heading", { name: "Staff Reports", exact: true }),
+    page.getByRole("heading", { name: "My Hours", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Shop hours", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Volunteer hours", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Reports", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Reports", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Member summaries" }),
@@ -103,7 +114,7 @@ test("staff reports filters and CSV export", async ({ page }) => {
     .analyze();
   expect(axe.violations).toEqual([]);
 });
-test("users without a Puncher account see the leaderboard and failures have clear states", async ({
+test("users without a Puncher account see setup instructions and can view the leaderboard", async ({
   page,
 }) => {
   await page.goto("/");
@@ -112,19 +123,21 @@ test("users without a Puncher account see the leaderboard and failures have clea
     .getByRole("button", { name: "No Puncher account", exact: true })
     .click();
   await expect(
+    page.getByRole("heading", { name: "My Hours", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Set up your Puncher account" }),
+  ).toBeVisible();
+  const nav = page.getByRole("navigation", { name: "Main navigation" });
+  await expect(nav.getByRole("link")).toHaveCount(2);
+  await nav.getByRole("link", { name: "Leaderboard" }).click();
+  await expect(
     page.getByRole("heading", { name: "Team standings" }),
   ).toBeVisible();
-  await expect(page.getByText(/To see your own hours, sign in to/)).toBeVisible();
-  const nav = page.getByRole("navigation", { name: "Main navigation" });
-  await expect(nav.getByRole("link")).toHaveCount(1);
   await expect(nav.getByRole("link", { name: "Leaderboard" })).toHaveAttribute(
     "aria-current",
     "page",
   );
-  await page.goto("/#hours");
-  await expect(
-    page.getByRole("heading", { name: "Team standings" }),
-  ).toBeVisible();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await page.getByText("Access-state examples").click();
   await page.getByRole("button", { name: "Disabled former student" }).click();

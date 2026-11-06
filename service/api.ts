@@ -124,13 +124,13 @@ export function createApi(
           asOf: now,
         });
       if (path === "/api/hours") {
-        if (!viewer.student || !viewer.member)
+        if (!viewer.member)
           throw new AppError(
             403,
-            "STUDENT_ONLY",
-            "My Hours requires an active Puncher student account. Sign in to Puncher to set up your account.",
+            "PUNCHER_ACCOUNT_REQUIRED",
+            "My Hours requires an active Puncher account. Sign in to Puncher to set up your account.",
           );
-        const data = await teamData(repo, now);
+        const data = viewer.student ? await teamData(repo, now) : [];
         // Direct member lookup preserves private history if roster GSI has not caught up.
         const mine = entriesFor(
           await repo.history(viewer.member.memberId),

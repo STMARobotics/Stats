@@ -113,11 +113,35 @@ describe("read-only Stats API", () => {
     );
     for (const id of ["mentor", "admin"]) {
       expect((await call("/api/reports", {}, id)).statusCode).toBe(200);
-      expect((await call("/api/hours", {}, id)).statusCode).toBe(403);
+      expect((await call("/api/hours", {}, id)).statusCode).toBe(200);
     }
     user.role = "MENTOR";
     expect((await call("/api/reports")).statusCode).toBe(200);
-    expect((await call("/api/hours")).statusCode).toBe(403);
+    expect((await call("/api/hours")).statusCode).toBe(200);
+  });
+  it("shows staff only their own history on My Hours without reading the team roster", async () => {
+    const { call, repo } = setup();
+    const visit = repo.records.find(
+      (row) => row.pk === "ATTENDANCE#demo-alex" && row.sk.startsWith("SHOP#"),
+    )!;
+    repo.records.push({
+      ...visit,
+      pk: "ATTENDANCE#demo-mentor",
+      memberId: "demo-mentor",
+    });
+    repo.roster = async () => {
+      throw new Error("My Hours must not read the team roster for staff");
+    };
+    const mentor = await call("/api/hours", {}, "mentor");
+    expect(mentor.statusCode).toBe(200);
+    expect(JSON.parse(mentor.body)).toMatchObject({
+      selected: { shopSeconds: visit.creditedSeconds, volunteerSeconds: 0 },
+      ranks: { shop: null, volunteer: null },
+      history: [{ id: visit.sessionId }],
+    });
+    const admin = await call("/api/hours", {}, "admin");
+    expect(admin.statusCode).toBe(200);
+    expect(JSON.parse(admin.body).history).toEqual([]);
   });
   it("switches year/metric, retains former students and paginates exact rankings", async () => {
     const { call } = setup();

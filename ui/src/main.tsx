@@ -519,13 +519,6 @@ function Leaderboard({
                   </td>
                   <td>
                     <div className="student-name">
-                      <span className="avatar">
-                        {r.displayName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .slice(0, 2)
-                          .join("")}
-                      </span>
                       <strong>{r.displayName}</strong>
                       {r.isMe && <span className="you">You</span>}
                       {!r.active && (
@@ -908,15 +901,9 @@ function Portal({
   const expired = () =>
     signOut("Your login expired. Sign in again to continue.");
   const me = useData<Me>("/api/me", token, expired, revision);
-  const homePage = me.data?.student
-    ? "hours"
-    : me.data?.staff
-      ? "reports"
-      : "leaderboard";
-  const page =
-    !route || route === "main" || (route === "hours" && !me.data?.student)
-      ? homePage
-      : route;
+  const homePage = "hours";
+  const page = !route || route === "main" ? homePage : route;
+  const hasPuncherAccount = me.data?.student || me.data?.staff;
   useEffect(() => {
     const update = () => {
       const hash = location.hash.slice(1);
@@ -931,7 +918,7 @@ function Portal({
   const selectedYear = year ?? me.data?.currentYear ?? 2027;
   const h = useData<Hours>(
     `/api/hours?year=${selectedYear}`,
-    me.data?.student && page === "hours" ? token : "",
+    hasPuncherAccount && page === "hours" ? token : "",
     expired,
     revision,
   );
@@ -976,14 +963,9 @@ function Portal({
           STATS
         </a>
         <nav aria-label="Main navigation">
-          {me.data.student && (
-            <a
-              aria-current={page === "hours" ? "page" : undefined}
-              href="#hours"
-            >
-              My Hours
-            </a>
-          )}
+          <a aria-current={page === "hours" ? "page" : undefined} href="#hours">
+            My Hours
+          </a>
           <a
             aria-current={page === "leaderboard" ? "page" : undefined}
             href="#leaderboard"
@@ -995,7 +977,7 @@ function Portal({
               aria-current={page === "reports" ? "page" : undefined}
               href="#reports"
             >
-              Staff Reports
+              Reports
             </a>
           )}
         </nav>
@@ -1013,7 +995,7 @@ function Portal({
               ? "My Hours"
               : page === "leaderboard"
                 ? "Leaderboard"
-                : "Staff Reports"}
+                : "Reports"}
           </h1>
           <label className="year-picker">
             <span>Reporting year</span>
@@ -1039,14 +1021,20 @@ function Portal({
             Synthetic demo · {stamp(config.demoNow!)}
           </p>
         )}
-        {page === "leaderboard" && !me.data.student && !me.data.staff && (
-          <p className="small muted">
-            To see your own hours, sign in to{" "}
-            {config.puncherUrl ? <a href={config.puncherUrl}>Puncher</a> : "Puncher"}{" "}
-            to create your account, then return to Stats.
-          </p>
-        )}
-        {page === "reports" ? (
+        {page === "hours" && !hasPuncherAccount ? (
+          <section className="panel empty">
+            <h2>Set up your Puncher account</h2>
+            <p>
+              To see your own hours, sign in to{" "}
+              {config.puncherUrl ? (
+                <a href={config.puncherUrl}>Puncher</a>
+              ) : (
+                "Puncher"
+              )}{" "}
+              to create your account, then return to Stats.
+            </p>
+          </section>
+        ) : page === "reports" ? (
           me.data.staff ? (
             <StaffReports
               token={token}
@@ -1149,6 +1137,7 @@ function App() {
       token={token}
       config={config}
       signOut={(m) => {
+        history.replaceState(null, "", location.pathname + location.search);
         setToken("");
         setMessage(m ?? "");
         void fetch("/api/auth/logout", {

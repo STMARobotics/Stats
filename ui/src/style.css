@@ -467,19 +467,6 @@ tbody tr:last-child td {
   gap: 12px;
   align-items: center;
 }
-.avatar {
-  width: 29px;
-  height: 29px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  background: #121a23;
-  border: 1px solid #34404d;
-  color: #b5d8ff;
-  flex-shrink: 0;
-}
 .you {
   font-size: 10px;
   color: #b5d8ff;
@@ -831,9 +818,6 @@ tbody tr:last-child td {
   }
   .student-name {
     gap: 8px;
-  }
-  .student-name .avatar {
-    display: none;
   }
   .rank-col {
     width: 55px;
